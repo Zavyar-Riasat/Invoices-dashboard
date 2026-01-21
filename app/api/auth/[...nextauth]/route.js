@@ -77,7 +77,7 @@ export const authOptions = {
             email: user.email,
             image: user.image || "",
             provider: "google",
-            role: "user",
+            role: "admin",
             createdAt: new Date(),
           });
         }

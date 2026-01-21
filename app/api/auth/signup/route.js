@@ -27,7 +27,7 @@ export async function POST(req) {
       name: name || email.split("@")[0],
       email,
       password: hashedPassword,
-      role: "user",
+      role: "admin",
       provider: "credentials",
       createdAt: new Date(),
     });
