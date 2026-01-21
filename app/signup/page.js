@@ -41,7 +41,7 @@ export default function Signup() {
       await signIn("credentials", {
         email,
         password,
-        callbackUrl: "/dashboard",
+        callbackUrl: "/admin/dashboard",
       });
 
       setEmail("");

@@ -28,7 +28,7 @@ export default function Login() {
         console.error("Login error:", res.error);
         alert(res.error);
       } else {
-        window.location.href = "/dashboard";
+        window.location.href = "/admin/dashboard";
       }
     } catch (err) {
       console.error("Unexpected login error:", err);
@@ -41,7 +41,7 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
-      await signIn("google", { callbackUrl: "/dashboard" });
+      await signIn("google", { callbackUrl: "/admin/dashboard" });
     } catch (err) {
       console.error("Google login error:", err);
       alert("Google login failed!");
