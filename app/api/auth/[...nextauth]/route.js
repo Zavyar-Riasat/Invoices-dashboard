@@ -1,23 +1,20 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import CredentialsProvider from "next-auth/providers/credentials";
-import clientPromise from "../../../lib/mongodb";
-
 import bcrypt from "bcrypt";
 
+import dbConnect from "../../../lib/mongodb";
+import User from "../../../lib/models/User";
+
 export const authOptions = {
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
 
   providers: [
-    // 🔹 GOOGLE LOGIN
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
 
-    // 🔹 EMAIL & PASSWORD LOGIN
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -26,16 +23,9 @@ export const authOptions = {
       },
 
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          throw new Error("Missing email or password");
-        }
+        await dbConnect();
 
-        const client = await clientPromise;
-        const db = client.db();
-
-        const user = await db
-          .collection("users")
-          .findOne({ email: credentials.email });
+        const user = await User.findOne({ email: credentials.email });
 
         if (!user || !user.password) {
           throw new Error("User not found");
@@ -61,51 +51,34 @@ export const authOptions = {
   ],
 
   callbacks: {
-    // 🔹 GOOGLE USER SAVE
     async signIn({ user, account }) {
       if (account.provider === "google") {
-        const client = await clientPromise;
-        const db = client.db();
+        await dbConnect();
 
-        const existingUser = await db
-          .collection("users")
-          .findOne({ email: user.email });
+        const existingUser = await User.findOne({ email: user.email });
 
         if (!existingUser) {
-          await db.collection("users").insertOne({
+          await User.create({
             name: user.name,
             email: user.email,
             image: user.image || "",
             provider: "google",
             role: "admin",
-            createdAt: new Date(),
           });
         }
       }
       return true;
     },
 
-    // 🔹 ADD ROLE TO JWT
     async jwt({ token }) {
-      const client = await clientPromise;
-      const db = client.db();
-
-      const dbUser = await db
-        .collection("users")
-        .findOne({ email: token.email });
-
-      if (dbUser) {
-        token.role = dbUser.role;
-      }
-
+      await dbConnect();
+      const dbUser = await User.findOne({ email: token.email });
+      if (dbUser) token.role = dbUser.role;
       return token;
     },
 
-    // 🔹 ADD ROLE TO SESSION
     async session({ session, token }) {
-      if (session.user) {
-        session.user.role = token.role;
-      }
+      if (session.user) session.user.role = token.role;
       return session;
     },
   },

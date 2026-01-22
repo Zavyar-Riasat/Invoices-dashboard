@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { FiSearch, FiFilter, FiPlus, FiDownload, FiUserPlus, FiAlertCircle } from 'react-icons/fi';
+import { 
+  FiSearch, FiFilter, FiPlus, FiDownload, FiUserPlus, FiAlertCircle,
+  FiRefreshCw, FiTag, FiUsers, FiDollarSign, FiPackage, FiCalendar
+} from 'react-icons/fi';
 import ClientCard from '@/app/components/clients/ClientCard';
 import ClientForm from '@/app/components/clients/ClientForm';
 
@@ -13,7 +16,6 @@ export default function ClientsPage() {
   // Modal states
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  const [viewingClient, setViewingClient] = useState(null);
   
   // Filters
   const [search, setSearch] = useState('');
@@ -23,15 +25,14 @@ export default function ClientsPage() {
   
   // Form loading state
   const [formLoading, setFormLoading] = useState(false);
-  const [formError, setFormError] = useState(null);
 
-  // Log component mount
-  useEffect(() => {
-    console.log("ClientsPage: Component mounted");
-    return () => {
-      console.log("ClientsPage: Component unmounted");
-    };
-  }, []);
+  // Statistics
+  const [stats, setStats] = useState({
+    totalClients: 0,
+    activeClients: 0,
+    totalRevenue: 0,
+    totalDeliveries: 0
+  });
 
   // Fetch clients with error handling
   const fetchClients = async () => {
@@ -47,46 +48,45 @@ export default function ClientsPage() {
         sortOrder
       });
 
-      console.log("ClientsPage: Making API request", {
-        url: `/api/clients?${queryParams}`,
-        params: { search, statusFilter, sortBy, sortOrder }
-      });
-
+      console.log("ClientsPage: Making API request to /api/clients");
+      
       const response = await fetch(`/api/clients?${queryParams}`);
       
       console.log("ClientsPage: API response status", response.status);
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
       console.log("ClientsPage: API response data", data);
       
-      if (data.error) {
-        throw new Error(data.error);
+      if (data.success) {
+        setClients(data.clients || []);
+        
+        // Calculate statistics
+        const activeClients = data.clients?.filter(c => c.status === 'active') || [];
+        const totalRevenue = data.clients?.reduce((sum, client) => sum + (client.totalSpent || 0), 0) || 0;
+        const totalDeliveries = data.clients?.reduce((sum, client) => sum + (client.totalDeliveries || 0), 0) || 0;
+        
+        setStats({
+          totalClients: data.clients?.length || 0,
+          activeClients: activeClients.length,
+          totalRevenue,
+          totalDeliveries
+        });
+        
+      } else {
+        throw new Error(data.error || 'Failed to fetch clients');
       }
       
-      setClients(data.clients || []);
-      console.log("ClientsPage: Clients data set successfully", { count: data.clients?.length || 0 });
-      
     } catch (error) {
-      console.error("ClientsPage: Error fetching clients", {
-        message: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString()
-      });
-      
+      console.error("ClientsPage: Error fetching clients", error);
       setError(error.message || "Failed to fetch clients. Please try again.");
-      setClients([]); // Clear clients on error
-      
-      // Show alert for user (optional)
-      alert(`Error loading clients: ${error.message}`);
+      setClients([]);
       
     } finally {
       setLoading(false);
-      console.log("ClientsPage: fetchClients completed");
     }
   };
 
@@ -96,15 +96,13 @@ export default function ClientsPage() {
     fetchClients();
   }, [statusFilter, sortBy, sortOrder]);
 
-  // Debounced search
+  // Debounced search (500ms delay)
   useEffect(() => {
     console.log("ClientsPage: Search term changed", { search });
     
     const timer = setTimeout(() => {
-      if (search !== undefined) { // Check if search is defined
-        console.log("ClientsPage: Executing debounced search");
-        fetchClients();
-      }
+      console.log("ClientsPage: Executing debounced search");
+      fetchClients();
     }, 500);
 
     return () => {
@@ -118,10 +116,9 @@ export default function ClientsPage() {
     console.log("ClientsPage: handleCreateClient called", formData);
     
     setFormLoading(true);
-    setFormError(null);
     
     try {
-      console.log("ClientsPage: Making POST request to create client", formData);
+      console.log("ClientsPage: Making POST request to create client");
       
       const response = await fetch('/api/clients', {
         method: 'POST',
@@ -152,111 +149,70 @@ export default function ClientsPage() {
       alert(`Client "${formData.name}" created successfully!`);
       
     } catch (error) {
-      console.error("ClientsPage: Error creating client", {
-        message: error.message,
-        stack: error.stack,
-        formData,
-        timestamp: new Date().toISOString()
-      });
-      
-      setFormError(error.message);
-      
-      // Re-throw error for form component to catch
+      console.error("ClientsPage: Error creating client", error);
+      alert(`Error: ${error.message}`);
       throw error;
       
     } finally {
       setFormLoading(false);
-      console.log("ClientsPage: Create client process completed");
     }
   };
 
   // Handle update client
   const handleUpdateClient = async (formData) => {
-  console.log("ClientsPage: handleUpdateClient called", { 
-    clientId: editingClient?._id, 
-    formData 
-  });
-  
-  if (!editingClient) {
-    console.error("ClientsPage: No client to update");
-    return;
-  }
-  
-  setFormLoading(true);
-  setFormError(null);
-  
-  try {
-    console.log("ClientsPage: Making PUT request to update client");
-    
-    const response = await fetch(`/api/clients/${editingClient._id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
+    console.log("ClientsPage: handleUpdateClient called", { 
+      clientId: editingClient?._id, 
+      formData 
     });
-
-    console.log("ClientsPage: Update client response status", response.status);
     
-    // First, try to get response as text to see what's returned
-    const responseText = await response.text();
-    console.log("ClientsPage: Raw response text", responseText);
+    if (!editingClient) {
+      console.error("ClientsPage: No client to update");
+      return;
+    }
     
-    let data;
+    setFormLoading(true);
+    
     try {
-      data = JSON.parse(responseText);
-      console.log("ClientsPage: Update client response data", data);
-    } catch (parseError) {
-      console.error("ClientsPage: Failed to parse JSON response", {
-        text: responseText,
-        error: parseError.message
+      console.log("ClientsPage: Making PUT request to update client");
+      
+      const response = await fetch(`/api/clients/${editingClient._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
-      throw new Error(`Server returned invalid JSON: ${responseText.substring(0, 100)}...`);
-    }
-    
-    if (!response.ok) {
-      // Create a detailed error with response data
-      const error = new Error(data?.error || `Failed to update client. Status: ${response.status}`);
-      error.response = data;
-      error.status = response.status;
-      throw error;
-    }
 
-    console.log("ClientsPage: Client updated successfully", data.client);
-    
-    // Refresh client list
-    await fetchClients();
-    
-    // Close modal and clear editing client
-    setEditingClient(null);
-    setShowFormModal(false);
-    
-    // Show success message
-    alert(`Client "${formData.name}" updated successfully!`);
-    
-  } catch (error) {
-    console.error("ClientsPage: Error updating client", {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      response: error.response,
-      status: error.status,
-      clientId: editingClient?._id,
-      formData,
-      timestamp: new Date().toISOString()
-    });
-    
-    // Set form error for user feedback
-    setFormError(error.message || 'Failed to update client');
-    
-    // Re-throw error for form component to catch
-    throw error;
-    
-  } finally {
-    setFormLoading(false);
-    console.log("ClientsPage: Update client process completed");
-  }
-};
+      console.log("ClientsPage: Update client response status", response.status);
+      
+      const data = await response.json();
+      console.log("ClientsPage: Update client response data", data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || `Failed to update client. Status: ${response.status}`);
+      }
+
+      console.log("ClientsPage: Client updated successfully", data.client);
+      
+      // Refresh client list
+      await fetchClients();
+      
+      // Close modal and clear editing client
+      setEditingClient(null);
+      setShowFormModal(false);
+      
+      // Show success message
+      alert(`Client "${formData.name}" updated successfully!`);
+      
+    } catch (error) {
+      console.error("ClientsPage: Error updating client", error);
+      alert(`Error: ${error.message}`);
+      throw error;
+      
+    } finally {
+      setFormLoading(false);
+    }
+  };
 
   // Handle delete client
   const handleDeleteClient = async (client) => {
@@ -292,14 +248,8 @@ export default function ClientsPage() {
       alert(`Client "${client.name}" deleted successfully!`);
       
     } catch (error) {
-      console.error("ClientsPage: Error deleting client", {
-        message: error.message,
-        stack: error.stack,
-        clientId: client._id,
-        timestamp: new Date().toISOString()
-      });
-      
-      alert(`Error deleting client: ${error.message}`);
+      console.error("ClientsPage: Error deleting client", error);
+      alert(`Error: ${error.message}`);
     }
   };
 
@@ -308,7 +258,6 @@ export default function ClientsPage() {
     console.log("ClientsPage: Opening edit modal for client", { clientId: client._id, clientName: client.name });
     setEditingClient(client);
     setShowFormModal(true);
-    setFormError(null);
   };
 
   // Close modal
@@ -316,7 +265,6 @@ export default function ClientsPage() {
     console.log("ClientsPage: Closing modal");
     setShowFormModal(false);
     setEditingClient(null);
-    setFormError(null);
   };
 
   // Retry fetch on error
@@ -325,26 +273,33 @@ export default function ClientsPage() {
     fetchClients();
   };
 
+  // Format currency
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount || 0);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Client Management</h1>
           <p className="text-gray-600 mt-2">Store, organize, and track all your clients</p>
         </div>
-        <div className="flex gap-3">
-          {/* <button 
+        <div className="flex flex-wrap gap-3">
+          <button 
             className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2"
             onClick={() => console.log("Export clicked")}
           >
             <FiDownload />
             Export
-          </button> */}
+          </button>
           <button
             onClick={() => {
               console.log("Add New Client button clicked");
-             setEditingClient(null);
               setShowFormModal(true);
             }}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2"
@@ -355,9 +310,62 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Filters & Search */}
+      {/* Statistics Cards (Similar to items page) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Total Clients</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">{stats.totalClients}</p>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-lg">
+              <FiUsers className="text-blue-600 text-xl" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Active Clients</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">{stats.activeClients}</p>
+            </div>
+            <div className="p-3 bg-green-100 rounded-lg">
+              <FiUserPlus className="text-green-600 text-xl" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Total Revenue</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">
+                {formatCurrency(stats.totalRevenue)}
+              </p>
+            </div>
+            <div className="p-3 bg-purple-100 rounded-lg">
+              <FiDollarSign className="text-purple-600 text-xl" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500">Total Deliveries</p>
+              <p className="text-2xl font-bold text-gray-900 mt-2">{stats.totalDeliveries}</p>
+            </div>
+            <div className="p-3 bg-orange-100 rounded-lg">
+              <FiPackage className="text-orange-600 text-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters & Search - Updated to match items page */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
           {/* Search */}
           <div className="lg:col-span-2">
             <div className="relative">
@@ -366,11 +374,8 @@ export default function ClientsPage() {
                 type="text"
                 placeholder="Search by name, phone, email, or address..."
                 value={search}
-                onChange={(e) => {
-                  console.log("ClientsPage: Search input changed", e.target.value);
-                  setSearch(e.target.value);
-                }}
-                className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
               />
             </div>
           </div>
@@ -379,11 +384,8 @@ export default function ClientsPage() {
           <div>
             <select
               value={statusFilter}
-              onChange={(e) => {
-                console.log("ClientsPage: Status filter changed", e.target.value);
-                setStatusFilter(e.target.value);
-              }}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>
@@ -398,11 +400,10 @@ export default function ClientsPage() {
               value={`${sortBy}-${sortOrder}`}
               onChange={(e) => {
                 const [sortBy, sortOrder] = e.target.value.split('-');
-                console.log("ClientsPage: Sort changed", { sortBy, sortOrder });
                 setSortBy(sortBy);
                 setSortOrder(sortOrder);
               }}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
             >
               <option value="createdAt-desc">Newest First</option>
               <option value="createdAt-asc">Oldest First</option>
@@ -412,14 +413,48 @@ export default function ClientsPage() {
               <option value="totalSpent-desc">Highest Spending</option>
             </select>
           </div>
+
+          {/* Refresh Button */}
+          <div className="flex gap-2">
+            <button
+              onClick={fetchClients}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2"
+            >
+              <FiRefreshCw />
+              Refresh
+            </button>
+          </div>
         </div>
-        
-        {/* Debug info (remove in production) */}
-        <div className="mt-4 p-3 bg-gray-100 rounded-lg">
-          <p className="text-xs text-gray-600">
-            Debug: Showing {clients.length} clients | Search: "{search}" | Status: {statusFilter} | Sort: {sortBy}-{sortOrder}
-          </p>
-        </div>
+
+        {/* Active Filters Display - Like items page */}
+        {(search || statusFilter !== 'all') && (
+          <div className="flex flex-wrap gap-2 mt-4">
+            {search && (
+              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm">
+                <FiSearch size={12} />
+                Search: "{search}"
+                <button
+                  onClick={() => setSearch('')}
+                  className="text-blue-500 hover:text-blue-700 ml-1"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            {statusFilter !== 'all' && (
+              <div className="inline-flex items-center gap-2 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-sm">
+                <FiTag size={12} />
+                Status: {statusFilter}
+                <button
+                  onClick={() => setStatusFilter('all')}
+                  className="text-purple-500 hover:text-purple-700 ml-1"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Client Form Modal */}
@@ -469,7 +504,7 @@ export default function ClientsPage() {
               client={client}
               onEdit={handleOpenEditModal}
               onDelete={handleDeleteClient}
-              onView={setViewingClient}
+              onView={() => console.log('View client:', client)}
             />
           ))}
         </div>
@@ -488,11 +523,7 @@ export default function ClientsPage() {
               : "You haven't added any clients yet. Get started by adding your first client."}
           </p>
           <button
-            onClick={() => {
-              console.log("Add First Client button clicked from empty state");
-              setEditingClient(null);
-              setShowFormModal(true);
-            }}
+            onClick={() => setShowFormModal(true)}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2 mx-auto"
           >
             <FiUserPlus />
