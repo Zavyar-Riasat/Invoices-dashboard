@@ -68,7 +68,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-gray-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-yellow-600 px-4">
       <div className="bg-white shadow-2xl rounded-3xl w-full max-w-md p-10">
         {/* Header */}
         <h2 className="text-3xl font-extrabold text-center mb-2 text-gray-800">
@@ -105,7 +105,7 @@ export default function Signup() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="block w-full p-2 pr-10 border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 sm:text-sm"
+                className="block w-full p-2 pr-10 border-yellow-300 rounded-md focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm"
                 placeholder="you@example.com"
               />
               <MdEmail className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl" />
@@ -136,7 +136,7 @@ export default function Signup() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 shadow-sm hover:shadow-md transition-all font-medium"
+            className="w-full bg-accent text-white py-3 rounded-lg hover:bg-yellow-700  shadow-sm hover:shadow-md transition-all font-medium"
           >
             {loading ? "Signing up..." : "Sign Up"}
           </button>
@@ -146,7 +146,7 @@ export default function Signup() {
         <p className="text-center text-gray-400 text-sm mt-4">
           Already have an account?{" "}
           <Link href="/login">
-            <span className="text-purple-600 hover:underline cursor-pointer">
+            <span className="text-accent hover:underline cursor-pointer">
               Log in
             </span>
           </Link>

@@ -260,6 +260,15 @@ export default function ClientsPage() {
     setShowFormModal(true);
   };
 
+  // Open add modal (NEW - ensures form is empty)
+  const handleOpenAddModal = () => {
+    console.log("ClientsPage: Opening add modal for new client");
+    // Clear any editing client to ensure form resets
+    setEditingClient(null);
+    // Open the modal
+    setShowFormModal(true);
+  };
+
   // Close modal
   const handleCloseModal = () => {
     console.log("ClientsPage: Closing modal");
@@ -290,18 +299,8 @@ export default function ClientsPage() {
           <p className="text-gray-600 mt-2">Store, organize, and track all your clients</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          {/* <button 
-            className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2"
-            onClick={() => console.log("Export clicked")}
-          >
-            <FiDownload />
-            Export
-          </button> */}
           <button
-            onClick={() => {
-              console.log("Add New Client button clicked");
-              setShowFormModal(true);
-            }}
+            onClick={handleOpenAddModal}
             className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-secondary transition flex items-center gap-2"
           >
             <FiUserPlus />
@@ -457,8 +456,9 @@ export default function ClientsPage() {
         )}
       </div>
 
-      {/* Client Form Modal */}
+      {/* Client Form Modal - With key prop to force reset */}
       <ClientForm
+        key={editingClient ? `edit-${editingClient._id}` : "add-new"} // Key forces reset
         client={editingClient}
         onSubmit={editingClient ? handleUpdateClient : handleCreateClient}
         onCancel={handleCloseModal}
@@ -523,7 +523,7 @@ export default function ClientsPage() {
               : "You haven't added any clients yet. Get started by adding your first client."}
           </p>
           <button
-            onClick={() => setShowFormModal(true)}
+            onClick={handleOpenAddModal}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2 mx-auto"
           >
             <FiUserPlus />

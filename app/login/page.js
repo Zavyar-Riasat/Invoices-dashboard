@@ -51,7 +51,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-900 px-4">
       <div className="bg-white shadow-2xl rounded-3xl w-full max-w-md p-10">
         {/* Header */}
         <h1 className="text-4xl font-extrabold text-center mb-2 text-gray-800">
@@ -119,7 +119,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 shadow-sm hover:shadow-md transition-all font-medium"
+            className="w-full bg-primary text-white py-3 rounded-lg hover:bg-secondary shadow-sm hover:shadow-md transition-all font-medium"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
@@ -129,7 +129,7 @@ export default function Login() {
         <p className="text-center text-gray-400 text-sm mt-6">
           Don’t have an account?{" "}
           <Link href="/signup">
-            <span className="text-blue-600 hover:underline cursor-pointer">
+            <span className="text-primary hover:underline cursor-pointer">
               Sign up
             </span>
           </Link>

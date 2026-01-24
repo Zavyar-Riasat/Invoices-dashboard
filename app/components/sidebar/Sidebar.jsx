@@ -1,5 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
 
 import { useState } from "react";
 import SidebarItem from "./SidebarItem";
@@ -86,9 +88,18 @@ const Sidebar = ({ user }) => {
           <div
             className={`flex items-center gap-3 ${!isOpen && "justify-center"}`}
           >
-            <div className="w-8 h-8 bg-accent rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-lg">I</span>
-            </div>
+            <div className="w-14 h-14  rounded-full flex items-center justify-center">
+  <Link href="/">
+    <Image
+      src="https://primary.jwwb.nl/public/j/o/y/temp-iufuhcrpmzouftdhfohm/image-high-kvzqk7.png?enable-io=true&enable=upscale&height=70"
+      alt="Website Logo"
+      width={64}  // adjust width to fit inside div
+      height={64} // adjust height to fit inside div
+      className="object-cover rounded-full cursor-pointer"
+    />
+  </Link>
+</div>
+
 
             {isOpen && (
               <h1 className="text-xl font-bold text-white">Home Shift</h1>
