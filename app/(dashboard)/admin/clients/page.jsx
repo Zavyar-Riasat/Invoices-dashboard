@@ -290,19 +290,19 @@ export default function ClientsPage() {
           <p className="text-gray-600 mt-2">Store, organize, and track all your clients</p>
         </div>
         <div className="flex flex-wrap gap-3">
-          <button 
+          {/* <button 
             className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2"
             onClick={() => console.log("Export clicked")}
           >
             <FiDownload />
             Export
-          </button>
+          </button> */}
           <button
             onClick={() => {
               console.log("Add New Client button clicked");
               setShowFormModal(true);
             }}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2"
+            className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-secondary transition flex items-center gap-2"
           >
             <FiUserPlus />
             Add New Client

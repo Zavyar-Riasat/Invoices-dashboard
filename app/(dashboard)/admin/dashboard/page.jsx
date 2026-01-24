@@ -49,7 +49,7 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
           <p className="text-gray-600 mt-2">Welcome back! Here's what's happening with your business.</p>
         </div>
-        <button className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors">
+        <button className="px-6 py-3 bg-secondary text-white rounded-lg font-medium hover:bg-primary transition-colors">
           + Create Invoice
         </button>
       </div>

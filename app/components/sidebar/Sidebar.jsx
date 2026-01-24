@@ -29,16 +29,17 @@ const Sidebar = ({ user }) => {
       href: "/admin/dashboard",
     },
     { label: "Clients", icon: <FiUsers size={20} />, href: "/admin/clients" },
+     {
+      label: "Item Catalog",
+      icon: <FiPackage size={20} />,
+      href: "/admin/items",
+    },
     {
       label: "Invoices",
       icon: <FiFileText size={20} />,
       href: "/admin/invoices",
     },
-    {
-      label: "Item Catalog",
-      icon: <FiPackage size={20} />,
-      href: "/admin/items",
-    },
+   
     {
       label: "Expenses",
       icon: <FiDollarSign size={20} />,
@@ -55,7 +56,7 @@ const Sidebar = ({ user }) => {
     <>
       {/* Mobile Menu Button */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-md bg-secondary text-white"
+        className="lg:hidden fixed top-4 right-4 z-50 p-2 rounded-md bg-secondary text-white"
         onClick={() => setIsMobileOpen(!isMobileOpen)}
       >
         {isMobileOpen ? <FiX size={24} /> : <FiMenu size={24} />}

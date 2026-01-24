@@ -210,7 +210,7 @@ export default function ItemsPage() {
           </button> */}
           <button
             onClick={() => setShowFormModal(true)}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2"
+            className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-secondary transition flex items-center gap-2"
           >
             <FiPlus />
             Add New Item
