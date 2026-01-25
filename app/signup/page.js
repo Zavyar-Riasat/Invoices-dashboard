@@ -155,3 +155,6 @@
 //     </div>
 //   );
 // }
+export default function CreateSignupPage() {
+  return <div />;
+}
