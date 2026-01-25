@@ -269,12 +269,12 @@ const ItemCard = ({ item, onEdit, onDelete, onView }) => {
       </div>
 
       {/* Info badge for mobile */}
-      <div className="md:hidden absolute top-4 left-4">
+      {/* <div className="md:hidden absolute top-4 left-4">
         <div className="flex items-center gap-1 bg-blue-50 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
           <FiInfo size={10} />
           <span>Tap for details</span>
         </div>
-      </div>
+      </div> */}
 
       {/* Active/Inactive Indicator */}
       <div
