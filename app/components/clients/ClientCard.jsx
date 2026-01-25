@@ -137,7 +137,7 @@ const ClientCard = ({ client, onEdit, onDelete }) => {
           </div>
 
           {client.notes && (
-            <div className="pt-6 border-t border-gray-300">
+            <div className="pt-6 border-t">
               <p className="text-sm text-gray-500 mb-2">Notes</p>
               <p className="bg-gray-50 p-4 rounded-lg text-gray-700">
                 {client.notes}
@@ -150,7 +150,7 @@ const ClientCard = ({ client, onEdit, onDelete }) => {
       {/* Toggle button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-center gap-2 py-3 border-gray-300 border-t text-sm font-medium text-gray-600 hover:bg-gray-50"
+        className="w-full flex items-center justify-center gap-2 py-3 border-t text-sm font-medium text-gray-600 hover:bg-gray-50"
       >
         {isExpanded ? (
           <>
