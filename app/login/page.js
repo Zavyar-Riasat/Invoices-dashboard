@@ -51,7 +51,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-blue-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-yellow-600 px-4">
       <div className="bg-white shadow-2xl rounded-3xl w-full max-w-md p-10">
         {/* Header */}
         <h1 className="text-4xl font-extrabold text-center mb-2 text-gray-800">
@@ -62,21 +62,21 @@ export default function Login() {
         </p>
 
         {/* Google Login */}
-        <button
+        {/* <button
           onClick={handleGoogleLogin}
           disabled={loading}
           className="w-full flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-800 font-medium py-3 px-4 rounded-lg mb-6 shadow-sm hover:shadow-md transition-all"
         >
           <FcGoogle className="text-2xl" />
           {loading ? "Loading..." : "Continue with Google"}
-        </button>
+        </button> */}
 
         {/* Divider */}
-        <div className="flex items-center my-6">
+        {/* <div className="flex items-center my-6">
           <hr className="flex-1 border-gray-300" />
           <span className="mx-3 text-gray-400 text-sm">OR</span>
           <hr className="flex-1 border-gray-300" />
-        </div>
+        </div> */}
 
         {/* Email/Password Login Form */}
         <form onSubmit={handleEmailLogin} className="space-y-4">
@@ -119,21 +119,21 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-white py-3 rounded-lg hover:bg-secondary shadow-sm hover:shadow-md transition-all font-medium"
+            className="w-full bg-accent text-white py-3 rounded-lg hover:bg-yellow-700 shadow-sm hover:shadow-md transition-all font-medium"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
         {/* Footer */}
-        <p className="text-center text-gray-400 text-sm mt-6">
+        {/* <p className="text-center text-gray-400 text-sm mt-6">
           Don’t have an account?{" "}
           <Link href="/signup">
-            <span className="text-primary hover:underline cursor-pointer">
+            <span className="text-accent hover:underline cursor-pointer">
               Sign up
             </span>
           </Link>
-        </p>
+        </p> */}
       </div>
     </div>
   );
