@@ -189,3 +189,4 @@ const StatCard = ({ icon: Icon, label, value }) => (
 );
 
 export default ClientCard;
+
