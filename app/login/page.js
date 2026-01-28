@@ -51,7 +51,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-yellow-50 to-yellow-600 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-100 to-green-800 px-4">
       <div className="bg-white shadow-2xl rounded-3xl w-full max-w-md p-10">
         {/* Header */}
         <h1 className="text-4xl font-extrabold text-center mb-2 text-gray-800">
@@ -119,7 +119,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-accent text-white py-3 rounded-lg hover:bg-yellow-700 shadow-sm hover:shadow-md transition-all font-medium"
+            className="w-full bg-primary text-white hover:cursor-pointer py-3 rounded-lg hover:bg-green-800 shadow-sm hover:shadow-md transition-all font-medium"
           >
             {loading ? "Logging in..." : "Login"}
           </button>

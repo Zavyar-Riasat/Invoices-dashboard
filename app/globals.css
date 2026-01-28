@@ -2,9 +2,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #0f1729;
+  /* --color-primary: #0f1729;
   --color-secondary: #182543;
   --color-accent: #f59f0a;
+  --color-text-primary: #f8fafc; */
+  --color-primary: #4E8F6A;
+  --color-secondary: #1F3A4A;
+  --color-accent: #F6EFE4;
   --color-text-primary: #f8fafc;
 }
 @keyframes spin-slow {

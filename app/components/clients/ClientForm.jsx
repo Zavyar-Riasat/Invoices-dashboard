@@ -353,7 +353,7 @@ const ClientForm = ({ client = null, onSubmit, onCancel, isLoading = false, isOp
                 </div>
 
                 {/* Status */}
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Status
                   </label>
@@ -367,7 +367,7 @@ const ClientForm = ({ client = null, onSubmit, onCancel, isLoading = false, isOp
                     <option value="inactive">Inactive</option>
                     <option value="completed">Completed</option>
                   </select>
-                </div>
+                </div> */}
 
                 {/* Notes */}
                 <div>

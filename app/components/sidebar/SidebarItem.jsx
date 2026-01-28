@@ -16,7 +16,7 @@ const SidebarItem = ({ item, isOpen }) => {
           transition-all duration-200
           ${isActive 
             ? "bg-secondary text-accent  font-semibold" 
-            : "text-gray-600 hover:bg-secondary hover:text-white hover:font-semibold"
+            : "text-white hover:bg-secondary hover:text-white hover:font-semibold"
           }
           ${!isOpen && "justify-center"}
         `}

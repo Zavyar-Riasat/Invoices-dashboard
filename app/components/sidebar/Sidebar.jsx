@@ -31,7 +31,7 @@ const Sidebar = ({ user }) => {
       href: "/admin/dashboard",
     },
     { label: "Clients", icon: <FiUsers size={20} />, href: "/admin/clients" },
-     {
+    {
       label: "Item Catalog",
       icon: <FiPackage size={20} />,
       href: "/admin/items",
@@ -41,7 +41,7 @@ const Sidebar = ({ user }) => {
       icon: <FiFileText size={20} />,
       href: "/admin/invoices",
     },
-   
+
     {
       label: "Expenses",
       icon: <FiDollarSign size={20} />,
@@ -89,26 +89,25 @@ const Sidebar = ({ user }) => {
             className={`flex items-center gap-3 ${!isOpen && "justify-center"}`}
           >
             <div className="w-14 h-14  rounded-full flex items-center justify-center">
-  <Link href="/">
-    <Image
-      src="https://primary.jwwb.nl/public/j/o/y/temp-iufuhcrpmzouftdhfohm/image-high-kvzqk7.png?enable-io=true&enable=upscale&height=70"
-      alt="Website Logo"
-      width={64}  // adjust width to fit inside div
-      height={64} // adjust height to fit inside div
-      className="object-cover rounded-full cursor-pointer"
-    />
-  </Link>
-</div>
-
+              <Link href="/">
+                <Image
+                  src="https://primary.jwwb.nl/public/j/o/y/temp-iufuhcrpmzouftdhfohm/image-high-kvzqk7.png?enable-io=true&enable=upscale&height=70"
+                  alt="Website Logo"
+                  width={64} // adjust width to fit inside div
+                  height={64} // adjust height to fit inside div
+                  className="object-cover rounded-full cursor-pointer"
+                />
+              </Link>
+            </div>
 
             {isOpen && (
-              <h1 className="text-xl font-bold text-white">Home Shift</h1>
+              <h1 className="text-lg font-semibold text-white">Pack&Track</h1>
             )}
           </div>
 
           {/* Desktop Toggle Button */}
           <button
-            className="hidden text-accent  hover:cursor-pointer lg:flex items-center justify-center w-8 h-8 rounded-lg hover:text-white hover:bg-accent"
+            className="hidden text-secondary  hover:cursor-pointer lg:flex items-center justify-center w-8 h-8 rounded-lg hover:text-white hover:bg-secondary"
             onClick={() => setIsOpen(!isOpen)}
           >
             {isOpen ? (
@@ -150,7 +149,7 @@ const Sidebar = ({ user }) => {
           <button
             className={`
               flex items-center hover:cursor-pointer gap-3 w-full p-3 rounded-lg
-              text-gray-600 hover:text-accent hover:bg-red-50
+              text-secondary hover:text-red-500 hover:bg-red-50
               transition-colors duration-200
               ${!isOpen && "justify-center"}
             `}

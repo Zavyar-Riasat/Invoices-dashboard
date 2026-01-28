@@ -16,7 +16,8 @@ export default function ClientsPage() {
   // Modal states
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
-  
+  const [expandedClientId, setExpandedClientId] = useState(null);
+
   // Filters
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -309,8 +310,8 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Statistics Cards (Similar to items page) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -319,18 +320,6 @@ export default function ClientsPage() {
             </div>
             <div className="p-3 bg-blue-100 rounded-lg">
               <FiUsers className="text-blue-600 text-xl" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Active Clients</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">{stats.activeClients}</p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-lg">
-              <FiUserPlus className="text-green-600 text-xl" />
             </div>
           </div>
         </div>
@@ -362,9 +351,9 @@ export default function ClientsPage() {
         </div>
       </div>
 
-      {/* Filters & Search - Updated to match items page */}
+      {/* Filters & Search */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* Search */}
           <div className="lg:col-span-2">
             <div className="relative">
@@ -377,20 +366,6 @@ export default function ClientsPage() {
                 className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
               />
             </div>
-          </div>
-
-          {/* Status Filter */}
-          <div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="completed">Completed</option>
-            </select>
           </div>
 
           {/* Sort */}
@@ -412,20 +387,9 @@ export default function ClientsPage() {
               <option value="totalSpent-desc">Highest Spending</option>
             </select>
           </div>
-
-          {/* Refresh Button */}
-          <div className="flex gap-2">
-            <button
-              onClick={fetchClients}
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition flex items-center justify-center gap-2"
-            >
-              <FiRefreshCw />
-              Refresh
-            </button>
-          </div>
         </div>
 
-        {/* Active Filters Display - Like items page */}
+        {/* Active Filters Display */}
         {(search || statusFilter !== 'all') && (
           <div className="flex flex-wrap gap-2 mt-4">
             {search && (
@@ -456,9 +420,9 @@ export default function ClientsPage() {
         )}
       </div>
 
-      {/* Client Form Modal - With key prop to force reset */}
+      {/* Client Form Modal */}
       <ClientForm
-        key={editingClient ? `edit-${editingClient._id}` : "add-new"} // Key forces reset
+        key={editingClient ? `edit-${editingClient._id}` : "add-new"}
         client={editingClient}
         onSubmit={editingClient ? handleUpdateClient : handleCreateClient}
         onCancel={handleCloseModal}
@@ -495,20 +459,28 @@ export default function ClientsPage() {
         </div>
       )}
 
+      {/* Clients Grid - UPDATED SECTION */}
       {/* Clients Grid */}
-      {!loading && !error && clients.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {clients.map((client) => (
-            <ClientCard
-              key={client._id}
-              client={client}
-              onEdit={handleOpenEditModal}
-              onDelete={handleDeleteClient}
-              onView={() => console.log('View client:', client)}
-            />
-          ))}
-        </div>
-      )}
+{!loading && !error && clients.length > 0 && (
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+    {clients.map((client) => (
+  <ClientCard
+    key={client._id}
+    client={client}
+    onEdit={handleOpenEditModal}
+    onDelete={handleDeleteClient}
+    isExpanded={expandedClientId === client._id}
+    onToggle={() =>
+      setExpandedClientId(
+        expandedClientId === client._id ? null : client._id
+      )
+    }
+  />
+))}
+
+  </div>
+)}
+
 
       {/* Empty State */}
       {!loading && !error && clients.length === 0 && (
