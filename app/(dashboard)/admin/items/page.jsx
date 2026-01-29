@@ -13,6 +13,10 @@ import {
   FiTrendingUp,
   FiBarChart2,
   FiShoppingBag,
+  FiChevronLeft,
+  FiChevronRight,
+  FiChevronsLeft,
+  FiChevronsRight,
 } from "react-icons/fi";
 import ItemCard from "@/app/components/items/ItemCard";
 import ItemForm from "@/app/components/items/ItemForm";
@@ -40,6 +44,17 @@ export default function ItemsPage() {
   const [formLoading, setFormLoading] = useState(false);
   const [categories, setCategories] = useState([]);
 
+  // Pagination states
+  const [page, setPage] = useState(1);
+  const [limit] = useState(12);
+  const [pagination, setPagination] = useState({
+    page: 1,
+    pages: 1,
+    total: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+  });
+
   // Fetch items
   const fetchItems = async () => {
     setLoading(true);
@@ -47,6 +62,8 @@ export default function ItemsPage() {
 
     try {
       const queryParams = new URLSearchParams({
+        page,
+        limit,
         search: search,
         category: categoryFilter !== "all" ? categoryFilter : "",
         sortBy,
@@ -65,6 +82,13 @@ export default function ItemsPage() {
       if (data.success) {
         setItems(data.items || []);
         setCategories(data.filters?.categories || []);
+        setPagination(data.pagination || {
+          page: 1,
+          pages: 1,
+          total: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+        });
       } else {
         throw new Error(data.error || "Failed to fetch items");
       }
@@ -80,16 +104,66 @@ export default function ItemsPage() {
   // Fetch items when filters change
   useEffect(() => {
     fetchItems();
-  }, [categoryFilter, sortBy, sortOrder, activeOnly]);
+  }, [categoryFilter, sortBy, sortOrder, activeOnly, page]);
 
   // Debounced search
   useEffect(() => {
     const timer = setTimeout(() => {
+      setPage(1); // Reset to page 1 when search changes
       fetchItems();
     }, 500);
 
     return () => clearTimeout(timer);
   }, [search]);
+
+  // Handle page change
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= pagination.pages) {
+      setPage(newPage);
+      // Scroll to top when page changes
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  // Generate page numbers for pagination
+  const generatePageNumbers = () => {
+    const totalPages = pagination.pages;
+    const currentPage = pagination.page;
+    const pageNumbers = [];
+    
+    if (totalPages <= 1) return [1];
+    
+    // Always show first page
+    pageNumbers.push(1);
+    
+    // Calculate start and end
+    let start = Math.max(2, currentPage - 1);
+    let end = Math.min(totalPages - 1, currentPage + 1);
+    
+    // Add ellipsis if needed
+    if (start > 2) {
+      pageNumbers.push("...");
+    }
+    
+    // Add middle pages
+    for (let i = start; i <= end; i++) {
+      if (i > 1 && i < totalPages) {
+        pageNumbers.push(i);
+      }
+    }
+    
+    // Add ellipsis if needed
+    if (end < totalPages - 1) {
+      pageNumbers.push("...");
+    }
+    
+    // Always show last page if there is more than 1 page
+    if (totalPages > 1) {
+      pageNumbers.push(totalPages);
+    }
+    
+    return pageNumbers;
+  };
 
   // Handle create item
   const handleCreateItem = async (formData) => {
@@ -196,7 +270,7 @@ export default function ItemsPage() {
       activeItems.length > 0 ? totalValue / activeItems.length : 0;
 
     return {
-      totalItems: items.length,
+      totalItems: pagination.total || items.length,
       activeItems: activeItems.length,
       totalValue,
       avgPrice,
@@ -218,10 +292,6 @@ export default function ItemsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-3">
-          {/* <button className="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition flex items-center gap-2">
-            <FiDownload />
-            Export Catalog
-          </button> */}
           <button
             onClick={() => setShowFormModal(true)}
             className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-secondary transition flex items-center gap-2"
@@ -247,20 +317,6 @@ export default function ItemsPage() {
             </div>
           </div>
         </div>
-
-        {/* <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Active Items</p>
-              <p className="text-2xl font-bold text-gray-900 mt-2">
-                {stats.activeItems}
-              </p>
-            </div>
-            <div className="p-3 bg-green-100 rounded-lg">
-              <FiPackage className="text-green-600 text-xl" />
-            </div>
-          </div>
-        </div> */}
 
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
@@ -312,7 +368,10 @@ export default function ItemsPage() {
           <div>
             <select
               value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
+              onChange={(e) => {
+                setCategoryFilter(e.target.value);
+                setPage(1); // Reset to page 1 when filter changes
+              }}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               <option value="all">All Categories</option>
@@ -332,6 +391,7 @@ export default function ItemsPage() {
                 const [sortBy, sortOrder] = e.target.value.split("-");
                 setSortBy(sortBy);
                 setSortOrder(sortOrder);
+                setPage(1); // Reset to page 1 when sort changes
               }}
               className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
@@ -343,24 +403,6 @@ export default function ItemsPage() {
               <option value="createdAt-asc">Oldest First</option>
             </select>
           </div>
-
-          {/* View Controls */}
-          
-            {/* <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`p-3 transition ${viewMode === "grid" ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"}`}
-              >
-                <FiGrid size={20} />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`p-3 transition ${viewMode === "list" ? "bg-blue-100 text-blue-600" : "hover:bg-gray-100"}`}
-              >
-                <FiList size={20} />
-              </button>
-            </div> */}
-          
         </div>
 
         {/* Active Filters Display */}
@@ -388,17 +430,6 @@ export default function ItemsPage() {
                 </button>
               </div>
             )}
-            {/* {!activeOnly && (
-              <div className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full text-sm">
-                Showing All Items
-                <button
-                  onClick={() => setActiveOnly(true)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  ×
-                </button>
-              </div>
-            )} */}
           </div>
         )}
       </div>
@@ -444,53 +475,160 @@ export default function ItemsPage() {
 
       {/* Items Grid/List */}
       {!loading && !error && items.length > 0 && (
-  viewMode === "grid" ? (
-    <div className="flex flex-wrap gap-6 items-start">
-      {items.map((item) => (
-        <div
-          key={item._id}
-          className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
-        >
-          <ItemCard
-            item={item}
-            isExpanded={expandedItemId === item._id}
-            onToggle={() =>
-              setExpandedItemId(
-                expandedItemId === item._id ? null : item._id
-              )
-            }
-            onEdit={(item) => {
-              setEditingItem(item);
-              setShowFormModal(true);
-            }}
-            onDelete={handleDeleteItem}
-          />
-        </div>
-      ))}
-    </div>
-  ) : (
-    <div className="space-y-4">
-      {items.map((item) => (
-        <ItemCard
-          key={item._id}
-          item={item}
-          isExpanded={expandedItemId === item._id}
-          onToggle={() =>
-            setExpandedItemId(
-              expandedItemId === item._id ? null : item._id
-            )
-          }
-          onEdit={(item) => {
-            setEditingItem(item);
-            setShowFormModal(true);
-          }}
-          onDelete={handleDeleteItem}
-        />
-      ))}
-    </div>
-  )
-)}
+        <>
+          {viewMode === "grid" ? (
+            <div className="flex flex-wrap gap-6 items-start">
+              {items.map((item) => (
+                <div
+                  key={item._id}
+                  className="w-full md:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)]"
+                >
+                  <ItemCard
+                    item={item}
+                    isExpanded={expandedItemId === item._id}
+                    onToggle={() =>
+                      setExpandedItemId(
+                        expandedItemId === item._id ? null : item._id
+                      )
+                    }
+                    onEdit={(item) => {
+                      setEditingItem(item);
+                      setShowFormModal(true);
+                    }}
+                    onDelete={handleDeleteItem}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {items.map((item) => (
+                <ItemCard
+                  key={item._id}
+                  item={item}
+                  isExpanded={expandedItemId === item._id}
+                  onToggle={() =>
+                    setExpandedItemId(
+                      expandedItemId === item._id ? null : item._id
+                    )
+                  }
+                  onEdit={(item) => {
+                    setEditingItem(item);
+                    setShowFormModal(true);
+                  }}
+                  onDelete={handleDeleteItem}
+                />
+              ))}
+            </div>
+          )}
 
+          {/* Pagination Controls - NEW SECTION */}
+          {pagination.pages > 1 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Page Info */}
+                <div className="text-sm text-gray-600">
+                  Showing{" "}
+                  <span className="font-semibold">
+                    {Math.min((page - 1) * limit + 1, pagination.total)}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-semibold">
+                    {Math.min(page * limit, pagination.total)}
+                  </span>{" "}
+                  of <span className="font-semibold">{pagination.total}</span>{" "}
+                  items
+                </div>
+
+                {/* Page Navigation */}
+                <div className="flex items-center gap-2">
+                  {/* First Page Button */}
+                  <button
+                    onClick={() => handlePageChange(1)}
+                    disabled={!pagination.hasPrevPage}
+                    className={`p-2 rounded-lg border ${
+                      pagination.hasPrevPage
+                        ? "hover:bg-gray-50 cursor-pointer text-gray-600"
+                        : "cursor-not-allowed text-gray-400"
+                    }`}
+                    title="First Page"
+                  >
+                    <FiChevronsLeft />
+                  </button>
+
+                  {/* Previous Page Button */}
+                  <button
+                    onClick={() => handlePageChange(page - 1)}
+                    disabled={!pagination.hasPrevPage}
+                    className={`p-2 rounded-lg border ${
+                      pagination.hasPrevPage
+                        ? "hover:bg-gray-50 cursor-pointer text-gray-600"
+                        : "cursor-not-allowed text-gray-400"
+                    }`}
+                    title="Previous Page"
+                  >
+                    <FiChevronLeft />
+                  </button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1 mx-2">
+                    {generatePageNumbers().map((pageNum, index) =>
+                      pageNum === "..." ? (
+                        <span
+                          key={`ellipsis-${index}`}
+                          className="px-3 py-1 text-gray-400"
+                        >
+                          ...
+                        </span>
+                      ) : (
+                        <button
+                          key={`page-${pageNum}`}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`w-10 h-10 flex items-center justify-center rounded-lg border ${
+                            page === pageNum
+                              ? "bg-blue-600 text-white border-blue-600"
+                              : "hover:bg-gray-50 text-gray-700"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ),
+                    )}
+                  </div>
+
+                  {/* Next Page Button */}
+                  <button
+                    onClick={() => handlePageChange(page + 1)}
+                    disabled={!pagination.hasNextPage}
+                    className={`p-2 rounded-lg border ${
+                      pagination.hasNextPage
+                        ? "hover:bg-gray-50 cursor-pointer text-gray-600"
+                        : "cursor-not-allowed text-gray-400"
+                    }`}
+                    title="Next Page"
+                  >
+                    <FiChevronRight />
+                  </button>
+
+                  {/* Last Page Button */}
+                  <button
+                    onClick={() => handlePageChange(pagination.pages)}
+                    disabled={!pagination.hasNextPage}
+                    className={`p-2 rounded-lg border ${
+                      pagination.hasNextPage
+                        ? "hover:bg-gray-50 cursor-pointer text-gray-600"
+                        : "cursor-not-allowed text-gray-400"
+                    }`}
+                    title="Last Page"
+                  >
+                    <FiChevronsRight />
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Empty State */}
       {!loading && !error && items.length === 0 && (
