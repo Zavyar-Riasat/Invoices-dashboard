@@ -70,7 +70,7 @@ const ClientCard = ({ client, onEdit, onDelete, isExpanded, onToggle }) => {
       </div>
 
       {/* Content */}
-      <div className="p-6 space-y-6">
+      <div className="p-6 space-y-6 border-t border-green-400">
         {!isExpanded && (
           <>
             {client.email && (
@@ -143,7 +143,7 @@ const ClientCard = ({ client, onEdit, onDelete, isExpanded, onToggle }) => {
       {/* Toggle */}
       <button
         onClick={onToggle}
-        className="mt-auto border-t py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
+        className="mt-auto border-t border-green-500 py-3 text-sm text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
       >
         {isExpanded ? (
           <>
@@ -162,7 +162,7 @@ const ClientCard = ({ client, onEdit, onDelete, isExpanded, onToggle }) => {
 /* Helpers */
 
 const InfoRow = ({ icon: Icon, label, value, wrap }) => (
-  <div className="flex items-start gap-3">
+  <div className="flex items-start gap-3 ">
     <Icon className="text-gray-400 mt-1" />
     <div className="min-w-0">
       <p className="text-sm text-gray-500">{label}</p>
