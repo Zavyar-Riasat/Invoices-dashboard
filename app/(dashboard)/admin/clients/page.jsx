@@ -27,7 +27,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit] = useState(12);
   // Modal states
   const [showFormModal, setShowFormModal] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
@@ -574,7 +574,7 @@ export default function ClientsPage() {
       {/* Clients Grid */}
       {!loading && !error && clients.length > 0 && (
         <>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {clients.map((client) => (
               <ClientCard
                 key={client._id}

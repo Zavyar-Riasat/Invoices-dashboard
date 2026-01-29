@@ -28,46 +28,51 @@ const ClientCard = ({ client, onEdit, onDelete, isExpanded, onToggle }) => {
    return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b">
-        <div className="flex justify-between items-start">
-          <div className="flex gap-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <FiUser className="text-blue-600 text-xl" />
-            </div>
-
-            <div className="min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 truncate">
-                {client.name}
-              </h3>
-              <p className="text-sm text-gray-500 mt-1">
-                {formatDate(client.createdAt)}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => onEdit(client)}
-              className="p-2 hover:bg-green-50 rounded-lg text-gray-500 hover:text-green-600"
-            >
-              <FiEdit2 />
-            </button>
-            <button
-              onClick={() => onDelete(client)}
-              className="p-2 hover:bg-red-50 rounded-lg text-gray-500 hover:text-red-600"
-            >
-              <FiTrash2 />
-            </button>
-          </div>
-        </div>
-
-        {!isExpanded && (
-          <div className="mt-4 flex items-center gap-2 text-sm text-gray-600 break-words">
-            <FiPhone className="text-gray-400" />
-            {client.phone}
-          </div>
-        )}
+<div className="p-6 border-b">
+  <div className="flex justify-between items-start flex-wrap gap-4">
+    {/* Name + Avatar */}
+    <div className="flex gap-4 min-w-0 items-center">
+      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+        <FiUser className="text-blue-600 text-xl" />
       </div>
+
+      <div className="min-w-0">
+        <h3 className="text-lg font-semibold text-gray-900 truncate">
+          {client.name}
+        </h3>
+        <p className="text-sm text-gray-500 mt-1 truncate">
+          {formatDate(client.createdAt)}
+        </p>
+      </div>
+    </div>
+
+
+  </div>
+
+  {/* Phone */}
+  {!isExpanded && (
+    <div className="mt-4 flex items-center gap-2 text-sm text-gray-600 break-words">
+      <FiPhone className="text-gray-400" />
+      {client.phone}
+    </div>
+  )}
+      {/* Edit + Delete Buttons */}
+    <div className="flex gap-2  ml-52 -mb-4 flex-shrink-0">
+      <button
+        onClick={() => onEdit(client)}
+        className="p-2 hover:bg-green-50 rounded-lg text-gray-500 hover:text-green-600"
+      >
+        <FiEdit2 />
+      </button>
+      <button
+        onClick={() => onDelete(client)}
+        className="p-2 hover:bg-red-50 rounded-lg text-gray-500 hover:text-red-600"
+      >
+        <FiTrash2 />
+      </button>
+    </div>
+</div>
+
 
       {/* Content */}
       <div className="p-6 space-y-6 border-t border-green-400">

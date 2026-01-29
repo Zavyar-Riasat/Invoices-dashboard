@@ -1,38 +1,53 @@
 "use client";
 
-import { FiDollarSign, FiUsers, FiFileText, FiTrendingUp } from "react-icons/fi";
+import { FiDollarSign, FiUsers, FiFileText, FiTrendingUp, FiMessageSquare, // Add this
+  FiCheckCircle } from "react-icons/fi";
 
 export default function DashboardPage() {
   const stats = [
-    {
-      title: "Total Revenue",
-      value: "$45,231.89",
-      change: "+20.1%",
-      icon: <FiDollarSign className="text-green-500" size={24} />,
-      color: "bg-green-50",
-    },
-    {
-      title: "Total Clients",
-      value: "2,350",
-      change: "+180",
-      icon: <FiUsers className="text-blue-500" size={24} />,
-      color: "bg-blue-50",
-    },
-    {
-      title: "Invoices",
-      value: "12,234",
-      change: "+19%",
-      icon: <FiFileText className="text-purple-500" size={24} />,
-      color: "bg-purple-50",
-    },
-    {
-      title: "Expenses",
-      value: "$9,234",
-      change: "-2%",
-      icon: <FiTrendingUp className="text-red-500" size={24} />,
-      color: "bg-red-50",
-    },
-  ];
+  {
+    title: "Total Revenue",
+    value: "$45,231.89",
+    change: "+20.1%",
+    icon: <FiDollarSign className="text-green-500" size={24} />,
+    color: "bg-green-50",
+  },
+  {
+    title: "Total Clients",
+    value: "2,350",
+    change: "+180",
+    icon: <FiUsers className="text-blue-500" size={24} />,
+    color: "bg-blue-50",
+  },
+  {
+    title: "Invoices",
+    value: "12,234",
+    change: "+19%",
+    icon: <FiFileText className="text-purple-500" size={24} />,
+    color: "bg-purple-50",
+  },
+  {
+    title: "Expenses",
+    value: "$9,234",
+    change: "-2%",
+    icon: <FiTrendingUp className="text-red-500" size={24} />,
+    color: "bg-red-50",
+  },
+  {
+    title: "Quoting",
+    value: "156",
+    change: "+23%",
+    icon: <FiMessageSquare className="text-amber-500" size={24} />,
+    color: "bg-amber-50",
+  },
+  {
+    title: "Booking Confirmation",
+    value: "89",
+    change: "+45%",
+    icon: <FiCheckCircle className="text-indigo-500" size={24} />,
+    color: "bg-indigo-50",
+  },
+];
 
   const recentInvoices = [
     { id: 1, client: "Acme Corp", amount: "$2,500", status: "Paid", date: "2024-01-15" },
@@ -55,7 +70,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {stats.map((stat, index) => (
           <div
             key={index}
