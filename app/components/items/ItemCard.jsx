@@ -17,9 +17,16 @@ import {
 } from "react-icons/fi";
 import { format } from "date-fns";
 
-const ItemCard = ({ item, onEdit, onDelete, onView }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [showEyeIcon, setShowEyeIcon] = useState(false);
+const ItemCard = ({
+  item,
+  onEdit,
+  onDelete,
+  isExpanded,
+  onToggle,
+}) => {
+
+  // const [isExpanded, setIsExpanded] = useState(false);
+  // const [showEyeIcon, setShowEyeIcon] = useState(false);
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat("en-US", {
@@ -113,11 +120,11 @@ const ItemCard = ({ item, onEdit, onDelete, onView }) => {
 
       {/* Full Description */}
       {item.description && (
-        <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-            {item.description}
-          </p>
-        </div>
+        <div className="mb-6 p-4 sm:p-6 bg-gray-50 rounded-lg border border-gray-100">
+  <p className="text-sm sm:text-base text-gray-700 leading-relaxed sm:leading-normal whitespace-pre-line break-words">
+    {item.description}
+  </p>
+</div>
       )}
 
       {/* Item Details Grid */}
@@ -174,9 +181,10 @@ const ItemCard = ({ item, onEdit, onDelete, onView }) => {
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-sm font-medium text-yellow-800">Notes:</span>
               </div>
-              <p className="text-sm text-yellow-700 whitespace-pre-line leading-relaxed">
-                {item.notes}
-              </p>
+    <p className="text-sm sm:text-base text-yellow-700 whitespace-pre-line break-all sm:break-words leading-relaxed sm:leading-normal px-3 sm:px-0 py-1 sm:py-0">
+  {item.notes}
+</p>
+
             </div>
           </div>
         </div>
@@ -192,8 +200,8 @@ const ItemCard = ({ item, onEdit, onDelete, onView }) => {
   return (
     <div 
       className="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-all duration-200 overflow-hidden group relative"
-      onMouseEnter={() => setShowEyeIcon(true)}
-      onMouseLeave={() => setShowEyeIcon(false)}
+      // onMouseEnter={() => setShowEyeIcon(true)}
+      // onMouseLeave={() => setShowEyeIcon(false)}
     >
       {/* Card Header - Always visible */}
       <div className="p-6 border-b border-gray-100">
@@ -251,7 +259,7 @@ const ItemCard = ({ item, onEdit, onDelete, onView }) => {
       {/* Expand/Collapse Button */}
       <div className="border-t border-gray-100">
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
+          onClick={onToggle}
           className="w-full flex items-center justify-center gap-2 py-3 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition"
         >
           {isExpanded ? (
