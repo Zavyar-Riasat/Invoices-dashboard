@@ -19,36 +19,39 @@ const ClientForm = ({ client = null, onSubmit, onCancel, isLoading = false, isOp
   const [errors, setErrors] = useState({});
   const [submitError, setSubmitError] = useState("");
 
-  // Reset form when client prop changes
   useEffect(() => {
-    console.log("ClientForm: Client prop changed", { client, isOpen });
-    if (client) {
-      setFormData({
-        name: client.name || "",
-        phone: client.phone || "",
-        email: client.email || "",
-        address: client.address || "",
-        shiftingDate: client.shiftingDate
-          ? new Date(client.shiftingDate).toISOString().split("T")[0]
-          : "",
-        status: client.status || "active",
-        notes: client.notes || "",
-      });
-    } else {
-      // Reset to empty form when creating new client
-      setFormData({
-        name: "",
-        phone: "",
-        email: "",
-        address: "",
-        shiftingDate: "",
-        status: "active",
-        notes: "",
-      });
-    }
-    setErrors({});
-    setSubmitError("");
-  }, [client]);
+  if (!isOpen) return;
+
+  if (client) {
+    // Edit mode
+    setFormData({
+      name: client.name || "",
+      phone: client.phone || "",
+      email: client.email || "",
+      address: client.address || "",
+      shiftingDate: client.shiftingDate
+        ? new Date(client.shiftingDate).toISOString().split("T")[0]
+        : "",
+      status: client.status || "active",
+      notes: client.notes || "",
+    });
+  } else {
+    // Add mode (RESET FORM)
+    setFormData({
+      name: "",
+      phone: "",
+      email: "",
+      address: "",
+      shiftingDate: "",
+      status: "active",
+      notes: "",
+    });
+  }
+
+  setErrors({});
+  setSubmitError("");
+}, [client, isOpen]);
+
 
   // Prevent body scroll when modal is open
   useEffect(() => {
