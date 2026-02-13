@@ -2,7 +2,6 @@
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-
 import { useState } from "react";
 import SidebarItem from "./SidebarItem";
 import {
@@ -17,12 +16,17 @@ import {
   FiLogOut,
   FiChevronLeft,
   FiChevronRight,
+  FiMessageSquare, // For Quoting
+  FiCalendar,      // For Bookings
+  FiChevronDown,   // For collapsible menu
+  FiChevronUp,     // For collapsible menu
 } from "react-icons/fi";
 
 const Sidebar = ({ user }) => {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isQuotingOpen, setIsQuotingOpen] = useState(true);
 
   const navItems = [
     {
@@ -30,18 +34,37 @@ const Sidebar = ({ user }) => {
       icon: <FiHome size={20} />,
       href: "/admin/dashboard",
     },
-    { label: "Clients", icon: <FiUsers size={20} />, href: "/admin/clients" },
+    { 
+      label: "Clients", 
+      icon: <FiUsers size={20} />, 
+      href: "/admin/clients" 
+    },
     {
       label: "Item Catalog",
       icon: <FiPackage size={20} />,
       href: "/admin/items",
     },
+  ];
+
+  const quotingItems = [
+    {
+      label: "Quotes",
+      icon: <FiMessageSquare size={18} />,
+      href: "/admin/quotes",
+    },
+    {
+      label: "Bookings",
+      icon: <FiCalendar size={18} />,
+      href: "/admin/bookings",
+    },
+  ];
+
+  const otherItems = [
     {
       label: "Invoices",
       icon: <FiFileText size={20} />,
       href: "/admin/invoices",
     },
-
     {
       label: "Expenses",
       icon: <FiDollarSign size={20} />,
@@ -67,7 +90,7 @@ const Sidebar = ({ user }) => {
       {/* Overlay for mobile */}
       {isMobileOpen && (
         <div
-          className="lg:hidden fixed inset-0  bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -88,13 +111,13 @@ const Sidebar = ({ user }) => {
           <div
             className={`flex items-center gap-3 ${!isOpen && "justify-center"}`}
           >
-            <div className="w-14 h-14  rounded-full flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full flex items-center justify-center">
               <Link href="/">
                 <Image
                   src="https://primary.jwwb.nl/public/j/o/y/temp-iufuhcrpmzouftdhfohm/image-high-kvzqk7.png?enable-io=true&enable=upscale&height=70"
                   alt="Website Logo"
-                  width={64} // adjust width to fit inside div
-                  height={64} // adjust height to fit inside div
+                  width={64}
+                  height={64}
                   className="object-cover rounded-full cursor-pointer"
                 />
               </Link>
@@ -107,7 +130,7 @@ const Sidebar = ({ user }) => {
 
           {/* Desktop Toggle Button */}
           <button
-            className="hidden text-secondary  hover:cursor-pointer lg:flex items-center justify-center w-8 h-8 rounded-lg hover:text-white hover:bg-secondary"
+            className="hidden text-secondary hover:cursor-pointer lg:flex items-center justify-center w-8 h-8 rounded-lg hover:text-white hover:bg-secondary"
             onClick={() => setIsOpen(!isOpen)}
           >
             {isOpen ? (
@@ -118,27 +141,51 @@ const Sidebar = ({ user }) => {
           </button>
         </div>
 
-        {/* User Profile */}
-        {/* <div className="p-4 border-b border-gray-100">
-          <div className={`flex items-center gap-3 ${!isOpen && "justify-center"}`}>
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-              <span className="text-blue-600 font-semibold">
-                {user?.name?.charAt(0) || "A"}
-              </span>
-            </div>
-            {isOpen && (
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-800 truncate">{user?.name || "Admin"}</p>
-                <p className="text-sm text-gray-500 truncate">{user?.email || "admin@example.com"}</p>
-              </div>
-            )}
-          </div>
-        </div> */}
-
         {/* Navigation Items */}
         <nav className="flex-1 bg-primary overflow-y-auto py-4">
-          <ul className=" space-y-1 px-3">
+          <ul className="space-y-1 px-3">
+            {/* Main Navigation Items */}
             {navItems.map((item) => (
+              <SidebarItem key={item.label} item={item} isOpen={isOpen} />
+            ))}
+
+            {/* Quoting & Booking Module */}
+            {isOpen ? (
+              <>
+                {/* Section Header - Use div instead of li */}
+                <div className="mt-4 px-4 py-2">
+                  <button
+                    onClick={() => setIsQuotingOpen(!isQuotingOpen)}
+                    className="flex items-center justify-between w-full text-white hover:text-accent transition-colors"
+                  >
+                    <span className="text-sm font-semibold uppercase tracking-wider">
+                      Quoting & Booking
+                    </span>
+                    {isQuotingOpen ? (
+                      <FiChevronUp size={16} />
+                    ) : (
+                      <FiChevronDown size={16} />
+                    )}
+                  </button>
+                </div>
+                
+                {/* Quoting Items - Directly render SidebarItems without wrapper li */}
+                {isQuotingOpen && quotingItems.map((item) => (
+                  <SidebarItem key={item.label} item={item} isOpen={isOpen} />
+                ))}
+              </>
+            ) : (
+              // When sidebar is collapsed, show icons only
+              <>
+                <div className="my-4 border-t border-gray-700 pt-4"></div>
+                {quotingItems.map((item) => (
+                  <SidebarItem key={item.label} item={item} isOpen={isOpen} />
+                ))}
+              </>
+            )}
+
+            {/* Other Items */}
+            {otherItems.map((item) => (
               <SidebarItem key={item.label} item={item} isOpen={isOpen} />
             ))}
           </ul>
@@ -154,11 +201,8 @@ const Sidebar = ({ user }) => {
               ${!isOpen && "justify-center"}
             `}
             onClick={() => {
-              // remove auth data
               localStorage.removeItem("token");
-              localStorage.removeItem("user"); // optional
-
-              // redirect to login
+              localStorage.removeItem("user");
               router.push("/login");
             }}
           >

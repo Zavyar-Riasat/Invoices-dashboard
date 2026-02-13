@@ -20,19 +20,14 @@ export default function DashboardPage() {
     color: "bg-blue-50",
   },
   {
-    title: "Invoices",
-    value: "12,234",
-    change: "+19%",
-    icon: <FiFileText className="text-purple-500" size={24} />,
-    color: "bg-purple-50",
-  },
-  {
     title: "Expenses",
     value: "$9,234",
     change: "-2%",
     icon: <FiTrendingUp className="text-red-500" size={24} />,
     color: "bg-red-50",
   },
+  
+  
   {
     title: "Quoting",
     value: "156",
@@ -46,6 +41,13 @@ export default function DashboardPage() {
     change: "+45%",
     icon: <FiCheckCircle className="text-indigo-500" size={24} />,
     color: "bg-indigo-50",
+  },
+  {
+    title: "Invoices",
+    value: "12,234",
+    change: "+19%",
+    icon: <FiFileText className="text-purple-500" size={24} />,
+    color: "bg-purple-50",
   },
 ];
 
