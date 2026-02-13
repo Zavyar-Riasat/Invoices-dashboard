@@ -6,7 +6,7 @@ export async function PATCH(request, { params }) {
   try {
     await dbConnect();
     
-    const { id } = params;
+    const { id } = await params;
     const { status } = await request.json();
     
     // Validate status

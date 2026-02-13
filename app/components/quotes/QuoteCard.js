@@ -20,6 +20,10 @@ import {
 } from "react-icons/fi";
 import Link from "next/link";
 import { format } from "date-fns";
+import dynamic from "next/dynamic";
+
+const QuoteDownloadButton = dynamic(() => import("../../lib/pdf/QuotePDF").then(mod => ({ default: mod.QuoteDownloadButton })), { ssr: false });
+
 
 const QuoteCard = ({ quote, onRefresh }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -123,8 +127,39 @@ const QuoteCard = ({ quote, onRefresh }) => {
   };
 
   const handleSendQuote = async () => {
-    // This would integrate with email/SMS service
-    alert("Send quote functionality would integrate with email/SMS service");
+    if (!quote.clientEmail) {
+      alert("Error: Client email is not available");
+      return;
+    }
+
+    if (!confirm(`Send quote to ${quote.clientEmail}?`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch('/api/quotes/send-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ quoteId: quote._id }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send quote');
+      }
+
+      alert(`Quote sent successfully to ${quote.clientEmail}`);
+      onRefresh();
+    } catch (error) {
+      console.error('Error sending quote:', error);
+      alert(`Error: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConvertToBooking = () => {
@@ -132,10 +167,7 @@ const QuoteCard = ({ quote, onRefresh }) => {
     window.location.href = `/bookings/create?quoteId=${quote._id}`;
   };
 
-  const handleDownloadPDF = async () => {
-    // This would generate and download PDF
-    alert("PDF download functionality would generate quote PDF");
-  };
+ 
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
@@ -332,15 +364,15 @@ const QuoteCard = ({ quote, onRefresh }) => {
               {isExpanded ? "Show Less" : "Show Details"}
             </button>
 
-            {quote.status === 'draft' && (
+            {/* {quote.status === 'draft' && (
               <Link
-                href={`/quotes/${quote._id}`}
+                href={`/admin/quotes/edit/${quote._id}`}
                 className="px-4 py-2 text-sm font-medium text-blue-700 hover:bg-blue-50 rounded-lg transition flex items-center gap-2"
               >
                 <FiEdit2 />
                 Edit
               </Link>
-            )}
+            )} */}
           </div>
 
           <div className="flex gap-2">
@@ -366,14 +398,15 @@ const QuoteCard = ({ quote, onRefresh }) => {
               </button>
             )}
 
-            <button
-              onClick={handleDownloadPDF}
-              disabled={loading}
-              className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition flex items-center gap-2"
-            >
-              <FiPrinter />
-              Print
-            </button>
+            <QuoteDownloadButton 
+              quote={quote} 
+              companyInfo={{
+                name: "Pack & Attack Removal Ltd",
+                address: "Based in London — proudly serving all of Greater London, with nationwide moves available.",
+                phone: "07577 441 654 / 07775 144 475",
+                email: "info@Packattackremovalltd.com"
+              }}
+            />
 
             {quote.status === 'draft' && (
               <button

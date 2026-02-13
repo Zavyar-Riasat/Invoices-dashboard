@@ -1156,7 +1156,7 @@ useEffect(() => {
                       Amount *
                     </label>
                     <div className="relative">
-                      <span className="absolute p-4 left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                      <span className="absolute p-2 left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
                         $
                       </span>
                       <input

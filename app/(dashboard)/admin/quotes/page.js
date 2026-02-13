@@ -43,10 +43,10 @@ export default function QuotesPage() {
   const [stats, setStats] = useState({
     draft: 0,
     sent: 0,
-    pending: 0,
-    accepted: 0,
-    rejected: 0,
-    converted: 0,
+    // pending: 0,
+    // accepted: 0,
+    // rejected: 0,
+    // converted: 0,
   });
 
   const fetchQuotes = async () => {
@@ -77,10 +77,10 @@ export default function QuotesPage() {
         const stats = {
           draft: 0,
           sent: 0,
-          pending: 0,
-          accepted: 0,
-          rejected: 0,
-          converted: 0,
+          // pending: 0,
+          // accepted: 0,
+          // rejected: 0,
+          // converted: 0,
         };
         
         data.quotes.forEach(quote => {
@@ -159,10 +159,10 @@ export default function QuotesPage() {
     switch (status) {
       case 'draft': return 'bg-gray-100 text-gray-800';
       case 'sent': return 'bg-blue-100 text-blue-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'converted': return 'bg-purple-100 text-purple-800';
+      // case 'pending': return 'bg-yellow-100 text-yellow-800';
+      // case 'accepted': return 'bg-green-100 text-green-800';
+      // case 'rejected': return 'bg-red-100 text-red-800';
+      // case 'converted': return 'bg-purple-100 text-purple-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -171,10 +171,10 @@ export default function QuotesPage() {
     switch (status) {
       case 'draft': return <FiFileText />;
       case 'sent': return <FiSend />;
-      case 'pending': return <FiClock />;
-      case 'accepted': return <FiCheckCircle />;
-      case 'rejected': return <FiXCircle />;
-      case 'converted': return <FiDollarSign />;
+      // case 'pending': return <FiClock />;
+      // case 'accepted': return <FiCheckCircle />;
+      // case 'rejected': return <FiXCircle />;
+      // case 'converted': return <FiDollarSign />;
       default: return <FiFileText />;
     }
   };
@@ -208,7 +208,7 @@ export default function QuotesPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
         {Object.entries(stats).map(([status, count]) => (
           <div key={status} className="bg-white rounded-xl p-4 border border-gray-200">
             <div className="flex items-center justify-between">
@@ -254,10 +254,10 @@ export default function QuotesPage() {
               <option value="all">All Status</option>
               <option value="draft">Draft</option>
               <option value="sent">Sent</option>
-              <option value="pending">Pending</option>
+              {/* <option value="pending">Pending</option>
               <option value="accepted">Accepted</option>
               <option value="rejected">Rejected</option>
-              <option value="converted">Converted</option>
+              <option value="converted">Converted</option> */}
             </select>
           </div>
 

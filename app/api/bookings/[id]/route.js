@@ -6,7 +6,7 @@ export async function GET(request, { params }) {
   try {
     await dbConnect();
     
-    const { id } = params;
+    const { id } = await params;
     const booking = await Booking.findById(id)
       .populate('client', 'name phone email address')
       .populate('quote', 'quoteNumber grandTotal')
@@ -36,7 +36,7 @@ export async function PUT(request, { params }) {
   try {
     await dbConnect();
     
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     
     const booking = await Booking.findByIdAndUpdate(
@@ -70,7 +70,7 @@ export async function DELETE(request, { params }) {
   try {
     await dbConnect();
     
-    const { id } = params;
+    const { id } = await params;
     const booking = await Booking.findByIdAndDelete(id);
     
     if (!booking) {
