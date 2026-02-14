@@ -29,7 +29,7 @@ export default function QuotesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateFilter, setDateFilter] = useState("all");
-  
+const [expandedQuoteId, setExpandedQuoteId] = useState(null);  
   // Pagination
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
@@ -348,15 +348,19 @@ export default function QuotesPage() {
       {/* Quotes List */}
       {!loading && !error && quotes.length > 0 && (
         <>
-          <div className="space-y-4">
-            {quotes.map((quote) => (
-              <QuoteCard
-                key={quote._id}
-                quote={quote}
-                onRefresh={fetchQuotes}
-              />
-            ))}
-          </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+
+  {quotes.map((quote) => (
+    <QuoteCard
+      key={quote._id}
+      quote={quote}
+      onRefresh={fetchQuotes}
+      expandedQuoteId={expandedQuoteId}
+      setExpandedQuoteId={setExpandedQuoteId}
+    />
+  ))}
+</div>
 
           {/* Pagination */}
           {pagination.pages > 1 && (

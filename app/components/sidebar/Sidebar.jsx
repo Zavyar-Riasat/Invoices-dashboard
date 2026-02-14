@@ -44,10 +44,7 @@ const Sidebar = ({ user }) => {
       icon: <FiPackage size={20} />,
       href: "/admin/items",
     },
-  ];
-
-  const quotingItems = [
-    {
+     {
       label: "Quotes",
       icon: <FiMessageSquare size={18} />,
       href: "/admin/quotes",
@@ -57,6 +54,10 @@ const Sidebar = ({ user }) => {
       icon: <FiCalendar size={18} />,
       href: "/admin/bookings",
     },
+  ];
+
+  const quotingItems = [
+   
   ];
 
   const otherItems = [
@@ -148,42 +149,6 @@ const Sidebar = ({ user }) => {
             {navItems.map((item) => (
               <SidebarItem key={item.label} item={item} isOpen={isOpen} />
             ))}
-
-            {/* Quoting & Booking Module */}
-            {isOpen ? (
-              <>
-                {/* Section Header - Use div instead of li */}
-                <div className="mt-4 px-4 py-2">
-                  <button
-                    onClick={() => setIsQuotingOpen(!isQuotingOpen)}
-                    className="flex items-center justify-between w-full text-white hover:text-accent transition-colors"
-                  >
-                    <span className="text-sm font-semibold uppercase tracking-wider">
-                      Quoting & Booking
-                    </span>
-                    {isQuotingOpen ? (
-                      <FiChevronUp size={16} />
-                    ) : (
-                      <FiChevronDown size={16} />
-                    )}
-                  </button>
-                </div>
-                
-                {/* Quoting Items - Directly render SidebarItems without wrapper li */}
-                {isQuotingOpen && quotingItems.map((item) => (
-                  <SidebarItem key={item.label} item={item} isOpen={isOpen} />
-                ))}
-              </>
-            ) : (
-              // When sidebar is collapsed, show icons only
-              <>
-                <div className="my-4 border-t border-gray-700 pt-4"></div>
-                {quotingItems.map((item) => (
-                  <SidebarItem key={item.label} item={item} isOpen={isOpen} />
-                ))}
-              </>
-            )}
-
             {/* Other Items */}
             {otherItems.map((item) => (
               <SidebarItem key={item.label} item={item} isOpen={isOpen} />
