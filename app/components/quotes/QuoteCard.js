@@ -161,8 +161,8 @@ const QuoteCard = ({
   };
 
   const handleSendQuote = async () => {
-    if (!quote.clientEmail) {
-      alert("Error: Client email is not available");
+    if (!quote.clientEmail || quote.clientEmail.trim() === '') {
+      alert("Error: Client email is not available.\n\nPlease edit the client to add an email address before sending the quote.");
       return;
     }
 
@@ -187,24 +187,45 @@ const QuoteCard = ({
       formData.append("quoteNumber", quote.quoteNumber);
       formData.append("clientName", quote.clientName);
 
+      console.log("📧 Sending email to:", quote.clientEmail);
       const response = await fetch("/api/quotes/send-email", {
         method: "POST",
         body: formData,
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Failed to send");
+      console.log("📥 Email response:", data, "Status:", response.status);
+      
+      if (!response.ok) {
+        console.error("❌ Email send failed:", data.error);
+        throw new Error(data.error || "Failed to send email");
+      }
 
-      await fetch(`/api/quotes/${quote._id}`, {
+      console.log("✅ Email sent successfully");
+
+      // Update status to "sent" after successful email send
+      console.log("🔄 Updating quote status to 'sent' for quote ID:", quote._id);
+      const statusResponse = await fetch(`/api/quotes/${quote._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "sent" }),
       });
 
-      alert(`Quote PDF sent successfully to ${quote.clientEmail}`);
+      const statusData = await statusResponse.json();
+      console.log("📥 Status update response:", statusData, "Status code:", statusResponse.status);
+      
+      if (!statusResponse.ok) {
+        console.error("❌ Status update failed:", statusData.error);
+        // Email was sent successfully, so show success message even if status update fails
+        alert(`Quote PDF sent successfully to ${quote.clientEmail}!\n\nNote: Status update encountered an issue, but the email was sent.`);
+        onRefresh();
+        return;
+      }
+
+      alert(`Quote PDF sent successfully to ${quote.clientEmail} and status updated to Sent`);
       onRefresh();
     } catch (error) {
-      console.error("Error sending quote:", error);
+      console.error("❌ Error in handleSendQuote:", error);
       alert(`Error: ${error.message}`);
     } finally {
       setLoading(false);

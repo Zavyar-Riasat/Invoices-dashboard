@@ -32,7 +32,7 @@ export default function QuotesPage() {
 const [expandedQuoteId, setExpandedQuoteId] = useState(null);  
   // Pagination
   const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [limit] = useState(12);
   const [pagination, setPagination] = useState({
     page: 1,
     pages: 1,
@@ -54,12 +54,11 @@ const [expandedQuoteId, setExpandedQuoteId] = useState(null);
     setError(null);
 
     try {
-      const queryParams = new URLSearchParams({
-        page,
-        limit,
-        search: search,
-        status: statusFilter !== "all" ? statusFilter : "",
-      });
+      const queryParams = new URLSearchParams();
+      queryParams.set("page", page);
+      queryParams.set("limit", limit);
+      if (search) queryParams.set("search", search);
+      if (statusFilter !== "all") queryParams.set("status", statusFilter);
 
       const response = await fetch(`/api/quotes?${queryParams}`);
 
@@ -72,24 +71,6 @@ const [expandedQuoteId, setExpandedQuoteId] = useState(null);
       if (data.success) {
         setQuotes(data.quotes || []);
         setPagination(data.pagination);
-        
-        // Calculate statistics
-        const stats = {
-          draft: 0,
-          sent: 0,
-          // pending: 0,
-          // accepted: 0,
-          // rejected: 0,
-          // converted: 0,
-        };
-        
-        data.quotes.forEach(quote => {
-          if (quote.status in stats) {
-            stats[quote.status]++;
-          }
-        });
-        
-        setStats(stats);
       } else {
         throw new Error(data.error || "Failed to fetch quotes");
       }
@@ -102,25 +83,69 @@ const [expandedQuoteId, setExpandedQuoteId] = useState(null);
     }
   };
 
+  // Fetch statistics for all quotes (not just current page)
+  const fetchStatistics = async () => {
+    try {
+      // Fetch all quotes to calculate stats
+      const response = await fetch(`/api/quotes?page=1&limit=10000`);
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch statistics");
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Calculate statistics from all quotes
+        const stats = {
+          draft: 0,
+          sent: 0,
+        };
+        
+        data.quotes.forEach(quote => {
+          if (quote.status in stats) {
+            stats[quote.status]++;
+          }
+        });
+        
+        setStats(stats);
+      }
+    } catch (error) {
+      console.error("Error fetching statistics:", error);
+    }
+  };
+
+  // Fetch quotes based on pagination and filters
   useEffect(() => {
     fetchQuotes();
+    // Fetch statistics only on initial page (not on every pagination change)
+    // fetchStatistics();
   }, [page, statusFilter]);
+
+  // Fetch statistics on component mount and when search changes
+  useEffect(() => {
+    fetchStatistics();
+  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => {
+          setExpandedQuoteId(null);
       setPage(1);
       fetchQuotes();
+      fetchStatistics();
     }, 500);
 
     return () => clearTimeout(timer);
   }, [search]);
 
   const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= pagination.pages) {
-      setPage(newPage);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
+  if (newPage >= 1 && newPage <= pagination.pages) {
+    setExpandedQuoteId(null); // 🔥 ADD THIS
+    setPage(newPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+};
+
 
   const generatePageNumbers = () => {
     const totalPages = pagination.pages;
@@ -246,6 +271,7 @@ const [expandedQuoteId, setExpandedQuoteId] = useState(null);
             <select
               value={statusFilter}
               onChange={(e) => {
+                 setExpandedQuoteId(null);
                 setStatusFilter(e.target.value);
                 setPage(1);
               }}
@@ -350,35 +376,34 @@ const [expandedQuoteId, setExpandedQuoteId] = useState(null);
         <>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+          {quotes.map((quote) => (
+            <QuoteCard
+              key={quote._id}
+              quote={quote}
+              onRefresh={fetchQuotes}
+              expandedQuoteId={expandedQuoteId}
+              setExpandedQuoteId={setExpandedQuoteId}
+            />
+          ))}
+        </div>
 
-  {quotes.map((quote) => (
-    <QuoteCard
-      key={quote._id}
-      quote={quote}
-      onRefresh={fetchQuotes}
-      expandedQuoteId={expandedQuoteId}
-      setExpandedQuoteId={setExpandedQuoteId}
-    />
-  ))}
-</div>
+          {/* Pagination & Results Info */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-600">
+                Showing{" "}
+                <span className="font-semibold">
+                  {Math.min((page - 1) * limit + 1, pagination.total)}
+                </span>{" "}
+                to{" "}
+                <span className="font-semibold">
+                  {Math.min(page * limit, pagination.total)}
+                </span>{" "}
+                of <span className="font-semibold">{pagination.total}</span>{" "}
+                quotes
+              </div>
 
-          {/* Pagination */}
-          {pagination.pages > 1 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-gray-600">
-                  Showing{" "}
-                  <span className="font-semibold">
-                    {Math.min((page - 1) * limit + 1, pagination.total)}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-semibold">
-                    {Math.min(page * limit, pagination.total)}
-                  </span>{" "}
-                  of <span className="font-semibold">{pagination.total}</span>{" "}
-                  quotes
-                </div>
-
+              {pagination.pages > 1 && (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handlePageChange(1)}
@@ -457,9 +482,9 @@ const [expandedQuoteId, setExpandedQuoteId] = useState(null);
                     <FiChevronsRight />
                   </button>
                 </div>
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </>
       )}
 

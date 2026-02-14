@@ -352,15 +352,18 @@ const fetchQuote = async () => {
   const handleAddItem = (item) => {
     console.log("➕ Adding item:", item);
 
+    const basePrice = item.basePrice || 0;
     const newItem = {
       itemId: item._id,
       name: item.name,
       quantity: 1,
-      unitPrice: item.basePrice || 0,
-      totalPrice: item.basePrice || 0,
+      unitPrice: basePrice,
+      totalPrice: basePrice * 1, // 1 * basePrice
       unit: item.unit,
       notes: "",
     };
+
+    console.log("📝 New item data:", newItem);
 
     setFormData({
       ...formData,
@@ -376,13 +379,22 @@ const fetchQuote = async () => {
     console.log(`✏️ Updating item ${index}, field: ${field}, value:`, value);
 
     const updatedItems = [...formData.items];
-    updatedItems[index][field] = value;
-
-    if (field === "quantity" || field === "unitPrice") {
-      const newTotal =
-        updatedItems[index].quantity * updatedItems[index].unitPrice;
-      updatedItems[index].totalPrice = newTotal;
+    
+    // Parse values based on field type
+    if (field === "quantity") {
+      updatedItems[index][field] = parseInt(value) || 0;
+    } else if (field === "unitPrice") {
+      updatedItems[index][field] = parseFloat(value) || 0;
+    } else {
+      updatedItems[index][field] = value;
     }
+
+    // Always recalculate totalPrice
+    const quantity = updatedItems[index].quantity || 0;
+    const unitPrice = updatedItems[index].unitPrice || 0;
+    updatedItems[index].totalPrice = quantity * unitPrice;
+    
+    console.log(`✏️ Updated totalPrice for item ${index}: ${updatedItems[index].totalPrice}`);
 
     setFormData({
       ...formData,
@@ -533,37 +545,77 @@ const fetchQuote = async () => {
     setSaving(true);
 
     try {
-      const formattedItems = formData.items.map((item) => ({
-        itemId: item.itemId,
-        name: item.name,
-        quantity: item.quantity,
-        unit: item.unit,
-        unitPrice: item.unitPrice,
-        totalPrice: item.quantity * item.unitPrice,
-        notes: item.notes || "",
-      }));
+      // Ensure all item totals are correctly calculated
+      const formattedItems = formData.items.map((item) => {
+        const quantity = parseInt(item.quantity) || 1;
+        const unitPrice = parseFloat(item.unitPrice) || 0;
+        const totalPrice = quantity * unitPrice;
+        
+        console.log(`📦 Item: ${item.name}, Qty: ${quantity}, Price: ${unitPrice}, Total: ${totalPrice}`);
+        
+        return {
+          itemId: item.itemId,
+          name: item.name,
+          quantity: quantity,
+          unit: item.unit,
+          unitPrice: unitPrice,
+          totalPrice: totalPrice,
+          notes: item.notes || "",
+        };
+      });
+
+      console.log("📋 Formatted items:", formattedItems);
+
+      // Calculate totals from formatted items
+      const subtotal = formattedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+      const chargesTotal = formData.additionalCharges.reduce((sum, charge) => sum + (parseFloat(charge.amount) || 0), 0);
+      const discountsTotal = formData.discounts.reduce((sum, discount) => {
+        let discountAmount = discount.amount;
+        if (discount.type === "percentage") {
+          discountAmount = (subtotal * discount.amount) / 100;
+        }
+        return sum + discountAmount;
+      }, 0);
+
+      const taxableAmount = subtotal + chargesTotal - discountsTotal;
+      const vatAmount = taxableAmount * (formData.vatPercentage / 100);
+      const grandTotal = taxableAmount + vatAmount;
+
+      console.log("💰 Calculation Summary:", {
+        subtotal,
+        chargesTotal,
+        discountsTotal,
+        taxableAmount,
+        vatAmount,
+        grandTotal,
+      });
 
       const submitData = {
         client: formData.client,
         items: formattedItems,
         additionalCharges: formData.additionalCharges.map((charge) => ({
           description: charge.description,
-          amount: charge.amount,
+          amount: parseFloat(charge.amount) || 0,
           type: charge.type,
         })),
         discounts: formData.discounts.map((discount) => ({
           description: discount.description,
-          amount: discount.amount,
+          amount: parseFloat(discount.amount) || 0,
           type: discount.type,
         })),
         vatPercentage: formData.vatPercentage,
-        vatAmount: formData.vatAmount,
+        vatAmount: vatAmount,
         validityDays: formData.validityDays,
         notes: formData.notes || "",
         termsConditions: formData.termsConditions,
+        subtotal: subtotal,
+        totalAdditionalCharges: chargesTotal,
+        totalDiscount: discountsTotal,
+        grandTotal: grandTotal,
       };
 
       console.log("📤 Submitting quote update to API");
+      console.log("📝 Submit data:", JSON.stringify(submitData, null, 2));
 
       const response = await fetch(`/api/quotes/${quoteId}`, {
         method: "PUT",
@@ -574,6 +626,7 @@ const fetchQuote = async () => {
       });
 
       const data = await response.json();
+      console.log("📥 API Response:", data);
 
       if (!response.ok) {
         throw new Error(data.error || "Failed to update quote");

@@ -9,8 +9,12 @@ export async function POST(req) {
     const quoteNumber = formData.get("quoteNumber");
     const clientName = formData.get("clientName");
 
-    if (!pdfFile || !email) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!pdfFile) {
+      return NextResponse.json({ error: "PDF file is missing" }, { status: 400 });
+    }
+
+    if (!email || email.trim() === '') {
+      return NextResponse.json({ error: "Client email is not available. Please add an email address to the client before sending." }, { status: 400 });
     }
 
     const buffer = Buffer.from(await pdfFile.arrayBuffer());

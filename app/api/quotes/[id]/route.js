@@ -54,23 +54,64 @@ export async function PUT(request, { params }) {
     const body = await request.json();
 
     console.log("📦 API: Updating quote with ID:", id);
+    console.log("📝 Update body:", JSON.stringify(body, null, 2));
 
-    // Find the client to get updated details
-    const client = await Client.findById(body.client);
-    if (!client) {
-      return NextResponse.json(
-        { success: false, error: 'Client not found' },
-        { status: 404 }
-      );
+    // Prepare the update data
+    let updateData = { ...body };
+
+    // Only validate client if it's being updated
+    if (body.client) {
+      const client = await Client.findById(body.client);
+      if (!client) {
+        return NextResponse.json(
+          { success: false, error: 'Client not found' },
+          { status: 404 }
+        );
+      }
+
+      // Update client details
+      updateData.clientName = client.name;
+      updateData.clientPhone = client.phone;
+      updateData.clientEmail = client.email || '';
     }
 
-    // Prepare the update data with client details
-    const updateData = {
-      ...body,
-      clientName: client.name,
-      clientPhone: client.phone,
-      clientEmail: client.email || '',
-    };
+    // Ensure items have proper structure with totalPrice calculated
+    if (body.items && Array.isArray(body.items)) {
+      console.log("📦 Processing items array...");
+      updateData.items = body.items.map((item) => {
+        const quantity = parseInt(item.quantity) || 1;
+        const unitPrice = parseFloat(item.unitPrice) || 0;
+        const totalPrice = quantity * unitPrice;
+        
+        return {
+          itemId: item.itemId,
+          name: item.name,
+          quantity: quantity,
+          unit: item.unit,
+          unitPrice: unitPrice,
+          totalPrice: totalPrice,
+          notes: item.notes || "",
+        };
+      });
+      console.log("✅ Items processed:", updateData.items);
+    }
+
+    // Ensure charges and discounts are properly formatted
+    if (body.additionalCharges && Array.isArray(body.additionalCharges)) {
+      updateData.additionalCharges = body.additionalCharges.map((charge) => ({
+        description: charge.description,
+        amount: parseFloat(charge.amount) || 0,
+        type: charge.type,
+      }));
+    }
+
+    if (body.discounts && Array.isArray(body.discounts)) {
+      updateData.discounts = body.discounts.map((discount) => ({
+        description: discount.description,
+        amount: parseFloat(discount.amount) || 0,
+        type: discount.type,
+      }));
+    }
 
     const quote = await Quote.findByIdAndUpdate(
       id,
@@ -87,6 +128,7 @@ export async function PUT(request, { params }) {
     }
 
     console.log("✅ API: Quote updated successfully:", quote._id);
+    console.log("💾 Updated quote data:", JSON.stringify(quote, null, 2));
 
     // Format the response
     const formattedQuote = {

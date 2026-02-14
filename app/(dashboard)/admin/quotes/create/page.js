@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { pdf } from "@react-pdf/renderer";
+import { MyQuoteDocument } from "@/app/lib/pdf/QuotePDF";
 import {
   FiSave,
   FiX,
@@ -542,6 +544,22 @@ useEffect(() => {
 
     if (!validateForm()) return;
 
+    // Add confirmation for sending quote
+    if (status === "sent") {
+      if (!formData.clientEmail || formData.clientEmail.trim() === '') {
+        alert("Error: Client email is not available.\n\nPlease add an email address to the client profile before sending the quote.");
+        return;
+      }
+
+      const confirmSend = window.confirm(
+        `Send quote to ${formData.clientEmail}?\n\nThis will create the quote and send it to the client's email address.`
+      );
+      if (!confirmSend) {
+        console.log("❌ User cancelled quote sending");
+        return;
+      }
+    }
+
     setLoading(true);
     console.log("⏳ Loading started");
 
@@ -607,6 +625,50 @@ useEffect(() => {
         vatAmount: data.quote?.vatAmount,
         grandTotal: data.quote?.grandTotal,
       });
+
+      // If status is "sent", send the PDF email
+      if (status === "sent" && data.quote && formData.clientEmail) {
+        console.log("📧 Sending PDF email to:", formData.clientEmail);
+        try {
+          const companyInfo = {
+            name: "Pack & Attack Removal Ltd",
+            address: "Based in London — proudly serving all of Greater London, with nationwide moves available.",
+            phone: "07577 441 654 / 07775 144 475",
+            email: "info@Packattackremovalltd.com",
+          };
+
+          // Generate PDF
+          const doc = <MyQuoteDocument quote={data.quote} companyInfo={companyInfo} />;
+          const asBlob = await pdf(doc).toBlob();
+
+          // Create FormData with PDF
+          const emailFormData = new FormData();
+          emailFormData.append("file", asBlob);
+          emailFormData.append("email", formData.clientEmail);
+          emailFormData.append("quoteNumber", data.quote.quoteNumber);
+          emailFormData.append("clientName", formData.clientName);
+
+          // Send email
+          const emailResponse = await fetch("/api/quotes/send-email", {
+            method: "POST",
+            body: emailFormData,
+          });
+
+          const emailData = await emailResponse.json();
+          if (!emailResponse.ok) {
+            throw new Error(emailData.error || "Failed to send email");
+          }
+
+          console.log("✅ PDF sent successfully to:", formData.clientEmail);
+        } catch (emailError) {
+          console.error("⚠️ Quote created but failed to send email:", emailError);
+          alert(
+            `Quote created successfully! However, there was an issue sending the email: ${emailError.message}`
+          );
+          router.push("/admin/quotes");
+          return;
+        }
+      }
 
       alert(
         `Quote ${status === "draft" ? "saved as draft" : "created"} successfully!`,
