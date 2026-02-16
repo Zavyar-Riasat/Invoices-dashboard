@@ -1,269 +1,140 @@
 "use client";
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import {
+  FiPlus,
   FiSearch,
   FiFilter,
-  FiPlus,
-  FiCalendar,
-  FiClock,
-  FiCheckCircle,
-  FiXCircle,
-  FiLoader,
-  FiTruck,
-  FiDollarSign,
-  FiChevronLeft,
-  FiChevronRight,
-  FiChevronsLeft,
-  FiChevronsRight,
+  FiPackage,
 } from "react-icons/fi";
-import BookingCard from "./../../../components/bookings/BookingCard";
-import Link from "next/link";
-import { format } from "date-fns";
+import BookingCard from "@/app/components/bookings/BookingCard";
 
 export default function BookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  
-  // Filters
-  const [search, setSearch] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
-  
-  // Pagination
-  const [page, setPage] = useState(1);
-  const [limit] = useState(10);
+  const [expandedId, setExpandedId] = useState(null);
   const [pagination, setPagination] = useState({
     page: 1,
-    pages: 1,
+    limit: 10,
     total: 0,
-  });
-  
-  // Statistics
-  const [stats, setStats] = useState({
-    total: 0,
-    pending: 0,
-    confirmed: 0,
-    in_progress: 0,
-    completed: 0,
-    cancelled: 0,
+    pages: 0,
   });
 
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async (pageNum = 1, currentStatus = "all", currentSearch = "") => {
     setLoading(true);
-    setError(null);
-
     try {
-      const queryParams = new URLSearchParams({
-        page,
-        limit,
-        search: search,
-        status: statusFilter !== "all" ? statusFilter : "",
-        dateFrom,
-        dateTo,
+      const params = new URLSearchParams({
+        page: pageNum,
+        limit: 10,
+        status: currentStatus !== "all" ? currentStatus : "all",
+        search: currentSearch,
       });
 
-      const response = await fetch(`/api/bookings?${queryParams}`);
+      const response = await fetch(`/api/bookings?${params}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch bookings");
+        throw new Error(`API returned ${response.status}`);
       }
 
       const data = await response.json();
 
-      if (data.success) {
-        setBookings(data.bookings || []);
-        setPagination(data.pagination);
-        setStats(data.stats || {});
+      if (data.success && data.bookings) {
+        setBookings(data.bookings);
+        setPagination({
+          page: data.pagination?.page || pageNum,
+          limit: data.pagination?.limit || 10,
+          total: data.pagination?.total || 0,
+          pages: data.pagination?.pages || 0,
+        });
       } else {
-        throw new Error(data.error || "Failed to fetch bookings");
+        console.warn("API response missing bookings:", data);
+        setBookings([]);
       }
     } catch (error) {
       console.error("Error fetching bookings:", error);
-      setError(error.message);
       setBookings([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
+  // Initial fetch on component mount
   useEffect(() => {
-    fetchBookings();
-  }, [page, statusFilter]);
+    fetchBookings(1, "all", "");
+  }, []);
 
+  // Fetch on search term change (with debounce) and status filter change
   useEffect(() => {
     const timer = setTimeout(() => {
-      setPage(1);
-      fetchBookings();
-    }, 500);
+      fetchBookings(1, statusFilter, searchTerm);
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [search, dateFrom, dateTo]);
+  }, [searchTerm, statusFilter, fetchBookings]);
 
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= pagination.pages) {
-      setPage(newPage);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
 
-  const generatePageNumbers = () => {
-    const totalPages = pagination.pages;
-    const currentPage = pagination.page;
-    const pageNumbers = [];
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this booking?")) return;
     
-    if (totalPages <= 1) return [1];
-    
-    pageNumbers.push(1);
-    
-    let start = Math.max(2, currentPage - 1);
-    let end = Math.min(totalPages - 1, currentPage + 1);
-    
-    if (start > 2) {
-      pageNumbers.push("...");
-    }
-    
-    for (let i = start; i <= end; i++) {
-      if (i > 1 && i < totalPages) {
-        pageNumbers.push(i);
-      }
-    }
-    
-    if (end < totalPages - 1) {
-      pageNumbers.push("...");
-    }
-    
-    if (totalPages > 1) {
-      pageNumbers.push(totalPages);
-    }
-    
-    return pageNumbers;
-  };
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'confirmed': return 'bg-blue-100 text-blue-800';
-      case 'in_progress': return 'bg-indigo-100 text-indigo-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getStatusIcon = (status) => {
-    switch (status) {
-      case 'pending': return <FiClock />;
-      case 'confirmed': return <FiCheckCircle />;
-      case 'in_progress': return <FiLoader />;
-      case 'completed': return <FiTruck />;
-      case 'cancelled': return <FiXCircle />;
-      default: return <FiClock />;
-    }
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(amount || 0);
-  };
-
-  const formatDate = (date) => {
     try {
-      return format(new Date(date), "MMM dd, yyyy");
-    } catch {
-      return "Invalid date";
+      const response = await fetch(`/api/bookings/${id}`, {
+        method: "DELETE",
+      });
+      
+      if (response.ok) {
+        fetchBookings(pagination.page, statusFilter, searchTerm);
+      }
+    } catch (error) {
+      console.error("Error deleting booking:", error);
     }
   };
 
-  const handleClearFilters = () => {
-    setSearch("");
-    setStatusFilter("all");
-    setDateFrom("");
-    setDateTo("");
-    setPage(1);
-  };
+
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Booking Management</h1>
-          <p className="text-gray-600 mt-2">
-            Manage client bookings, payments, and shifting schedules
-          </p>
+          <h1 className="text-3xl font-bold text-gray-900">Bookings</h1>
+          <p className="text-gray-600 mt-2">Manage your moving bookings</p>
         </div>
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href="/bookings/create"
-            className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-secondary transition flex items-center gap-2"
-          >
-            <FiPlus />
-            Create New Booking
-          </Link>
-        </div>
+        <Link
+          href="/admin/bookings/create"
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+        >
+          <FiPlus />
+          New Booking
+        </Link>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        {Object.entries(stats).map(([status, count]) => (
-          status !== 'total' && (
-            <div key={status} className="bg-white rounded-xl p-4 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500 capitalize">{status.replace('_', ' ')}</p>
-                  <p className="text-2xl font-bold text-gray-900 mt-1">{count}</p>
-                </div>
-                <div className={`p-2 rounded-lg ${getStatusColor(status)}`}>
-                  {getStatusIcon(status)}
-                </div>
-              </div>
-            </div>
-          )
-        ))}
-        <div className="bg-white rounded-xl p-4 border border-gray-200">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-500">Total Bookings</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total}</p>
-            </div>
-            <div className="p-2 rounded-lg bg-gray-100">
-              <FiTruck className="text-gray-600" />
-            </div>
+      {/* Filters */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Search by booking number, client name, or phone..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            />
           </div>
-        </div>
-      </div>
-
-      {/* Filters & Search */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          {/* Search */}
-          <div className="lg:col-span-2">
-            <div className="relative">
-              <FiSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by booking number, client name, or phone..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-              />
-            </div>
-          </div>
-
-          {/* Status Filter */}
-          <div>
+          <div className="sm:w-48 relative">
+            <FiFilter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <select
               value={statusFilter}
-              onChange={(e) => {
-                setStatusFilter(e.target.value);
-                setPage(1);
-              }}
-              className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none appearance-none"
             >
               <option value="all">All Status</option>
               <option value="pending">Pending</option>
@@ -273,269 +144,61 @@ export default function BookingsPage() {
               <option value="cancelled">Cancelled</option>
             </select>
           </div>
-
-          {/* Clear Filters Button */}
-          <div>
-            <button
-              onClick={handleClearFilters}
-              className="w-full px-4 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
-            >
-              Clear Filters
-            </button>
-          </div>
         </div>
-
-        {/* Date Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              From Date
-            </label>
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              To Date
-            </label>
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
-          </div>
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setPage(1);
-                fetchBookings();
-              }}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-            >
-              Apply Date Filter
-            </button>
-          </div>
-        </div>
-
-        {/* Active Filters Display */}
-        {(search || statusFilter !== "all" || dateFrom || dateTo) && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {search && (
-              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full text-sm">
-                <FiSearch size={12} />
-                Search: "{search}"
-                <button
-                  onClick={() => setSearch("")}
-                  className="text-blue-500 hover:text-blue-700 ml-1"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-            {statusFilter !== "all" && (
-              <div className="inline-flex items-center gap-2 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-full text-sm">
-                Status: {statusFilter}
-                <button
-                  onClick={() => setStatusFilter("all")}
-                  className="text-purple-500 hover:text-purple-700 ml-1"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-            {dateFrom && (
-              <div className="inline-flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm">
-                From: {formatDate(dateFrom)}
-                <button
-                  onClick={() => setDateFrom("")}
-                  className="text-green-500 hover:text-green-700 ml-1"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-            {dateTo && (
-              <div className="inline-flex items-center gap-2 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-full text-sm">
-                To: {formatDate(dateTo)}
-                <button
-                  onClick={() => setDateTo("")}
-                  className="text-orange-500 hover:text-orange-700 ml-1"
-                >
-                  ×
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Loading State */}
-      {loading && (
-        <div className="text-center py-12">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 mb-4"></div>
-          <p className="text-gray-600">Loading bookings...</p>
+      {/* Bookings Grid */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      )}
-
-      {/* Error State */}
-      {error && !loading && (
-        <div className="text-center py-12 bg-red-50 border border-red-200 rounded-xl">
-          <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
-            <FiTruck className="text-red-500 text-2xl" />
-          </div>
-          <h3 className="text-xl font-medium text-gray-900 mb-2">
-            Error Loading Bookings
-          </h3>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={fetchBookings}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition"
-          >
-            Try Again
-          </button>
-        </div>
-      )}
-
-      {/* Bookings List */}
-      {!loading && !error && bookings.length > 0 && (
-        <>
-          <div className="space-y-4">
-            {bookings.map((booking) => (
-              <BookingCard
-                key={booking._id}
-                booking={booking}
-                onRefresh={fetchBookings}
-              />
-            ))}
-          </div>
-
-          {/* Pagination */}
-          {pagination.pages > 1 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-gray-600">
-                  Showing{" "}
-                  <span className="font-semibold">
-                    {Math.min((page - 1) * limit + 1, pagination.total)}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-semibold">
-                    {Math.min(page * limit, pagination.total)}
-                  </span>{" "}
-                  of <span className="font-semibold">{pagination.total}</span>{" "}
-                  bookings
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handlePageChange(1)}
-                    disabled={page === 1}
-                    className={`p-2 rounded-lg border ${
-                      page > 1
-                        ? "hover:bg-gray-50 cursor-pointer text-gray-600"
-                        : "cursor-not-allowed text-gray-400"
-                    }`}
-                    title="First Page"
-                  >
-                    <FiChevronsLeft />
-                  </button>
-
-                  <button
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={page === 1}
-                    className={`p-2 rounded-lg border ${
-                      page > 1
-                        ? "hover:bg-gray-50 cursor-pointer text-gray-600"
-                        : "cursor-not-allowed text-gray-400"
-                    }`}
-                    title="Previous Page"
-                  >
-                    <FiChevronLeft />
-                  </button>
-
-                  <div className="flex items-center gap-1 mx-2">
-                    {generatePageNumbers().map((pageNum, index) =>
-                      pageNum === "..." ? (
-                        <span
-                          key={`ellipsis-${index}`}
-                          className="px-3 py-1 text-gray-400"
-                        >
-                          ...
-                        </span>
-                      ) : (
-                        <button
-                          key={`page-${pageNum}`}
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`w-10 h-10 flex items-center justify-center rounded-lg border ${
-                            page === pageNum
-                              ? "bg-blue-600 text-white border-blue-600"
-                              : "hover:bg-gray-50 text-gray-700"
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      ),
-                    )}
-                  </div>
-
-                  <button
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={page === pagination.pages}
-                    className={`p-2 rounded-lg border ${
-                      page < pagination.pages
-                        ? "hover:bg-gray-50 cursor-pointer text-gray-600"
-                        : "cursor-not-allowed text-gray-400"
-                    }`}
-                    title="Next Page"
-                  >
-                    <FiChevronRight />
-                  </button>
-
-                  <button
-                    onClick={() => handlePageChange(pagination.pages)}
-                    disabled={page === pagination.pages}
-                    className={`p-2 rounded-lg border ${
-                      page < pagination.pages
-                        ? "hover:bg-gray-50 cursor-pointer text-gray-600"
-                        : "cursor-not-allowed text-gray-400"
-                    }`}
-                    title="Last Page"
-                  >
-                    <FiChevronsRight />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-        </>
-      )}
-
-      {/* Empty State */}
-      {!loading && !error && bookings.length === 0 && (
-        <div className="text-center py-16 bg-white rounded-xl border border-gray-200">
-          <div className="mx-auto w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-            <FiTruck className="text-gray-400 text-3xl" />
-          </div>
-          <h3 className="text-xl font-medium text-gray-900 mb-2">
-            No bookings found
-          </h3>
-          <p className="text-gray-600 mb-8 max-w-md mx-auto">
-            {search || statusFilter !== "all" || dateFrom || dateTo
-              ? "No bookings match your search criteria. Try adjusting your filters."
-              : "You haven't created any bookings yet. Start by creating your first booking!"}
-          </p>
+      ) : bookings.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <FiPackage className="mx-auto text-gray-400 text-5xl mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No bookings found</h3>
+          <p className="text-gray-500 mb-6">Get started by creating your first booking</p>
           <Link
-            href="/bookings/create"
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2 mx-auto"
+            href="/admin/bookings/create"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
             <FiPlus />
-            Create First Booking
+            Create Booking
           </Link>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {bookings.map((booking) => (
+            <BookingCard
+              key={booking._id}
+              booking={booking}
+              onRefresh={() => fetchBookings(pagination.page, statusFilter, searchTerm)}
+              expandedBookingId={expandedId}
+              setExpandedBookingId={setExpandedId}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination.pages > 1 && (
+        <div className="mt-8 flex justify-center gap-2">
+          <button
+            onClick={() => fetchBookings(pagination.page - 1, statusFilter, searchTerm)}
+            disabled={pagination.page === 1}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Previous
+          </button>
+          <span className="px-4 py-2">
+            Page {pagination.page} of {pagination.pages}
+          </span>
+          <button
+            onClick={() => fetchBookings(pagination.page + 1, statusFilter, searchTerm)}
+            disabled={pagination.page === pagination.pages}
+            className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+          >
+            Next
+          </button>
         </div>
       )}
     </div>

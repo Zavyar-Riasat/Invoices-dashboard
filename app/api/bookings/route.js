@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
-import dbConnect from '@/app/lib/mongodb';
-import Booking from '@/app/lib/models/Booking';
+import dbConnect from '../../lib/mongodb';
+import Booking from '../../lib/models/Booking';
+import Client from '../../lib/models/Client';
+import Quote from '../../lib/models/Quote';
 
 export async function GET(request) {
   try {
@@ -9,18 +11,11 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
-    const status = searchParams.get('status');
-    const search = searchParams.get('search');
-    const dateFrom = searchParams.get('dateFrom');
-    const dateTo = searchParams.get('dateTo');
-    
-    // Build query
+    const search = searchParams.get('search') || '';
+    const status = searchParams.get('status') || '';
+
     let query = {};
-    
-    if (status && status !== 'all') {
-      query.status = status;
-    }
-    
+
     if (search) {
       query.$or = [
         { bookingNumber: { $regex: search, $options: 'i' } },
@@ -28,40 +23,24 @@ export async function GET(request) {
         { clientPhone: { $regex: search, $options: 'i' } },
       ];
     }
-    
-    if (dateFrom || dateTo) {
-      query.shiftingDate = {};
-      if (dateFrom) {
-        query.shiftingDate.$gte = new Date(dateFrom);
-      }
-      if (dateTo) {
-        query.shiftingDate.$lte = new Date(dateTo);
-      }
+
+    if (status && status !== 'all') {
+      query.status = status;
     }
-    
-    // Execute query
+
     const bookings = await Booking.find(query)
-      .sort({ shiftingDate: 1 })
+      .populate('client', 'name phone email')
+      .populate('quote', 'quoteNumber')
+      .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean();
-    
+
     const total = await Booking.countDocuments(query);
-    
-    // Get statistics
-    const stats = {
-      total: await Booking.countDocuments(),
-      pending: await Booking.countDocuments({ status: 'pending' }),
-      confirmed: await Booking.countDocuments({ status: 'confirmed' }),
-      in_progress: await Booking.countDocuments({ status: 'in_progress' }),
-      completed: await Booking.countDocuments({ status: 'completed' }),
-      cancelled: await Booking.countDocuments({ status: 'cancelled' }),
-    };
-    
+
     return NextResponse.json({
       success: true,
       bookings,
-      stats,
       pagination: {
         page,
         limit,
@@ -70,9 +49,9 @@ export async function GET(request) {
       },
     });
   } catch (error) {
-    console.error('Error fetching bookings:', error);
+    console.error('Error fetching bookings:', error.message, error.stack);
     return NextResponse.json(
-      { success: false, error: 'Failed to fetch bookings' },
+      { success: false, error: error.message || 'Failed to fetch bookings' },
       { status: 500 }
     );
   }
@@ -83,30 +62,120 @@ export async function POST(request) {
     await dbConnect();
     
     const body = await request.json();
-    
+    console.log('Creating booking with data:', body);
+
     // Validate required fields
-    const requiredFields = ['client', 'shiftingDate', 'shiftingTime', 'pickupAddress', 'deliveryAddress'];
-    const missingFields = requiredFields.filter(field => !body[field]);
-    
-    if (missingFields.length > 0) {
+    if (!body.client) {
       return NextResponse.json(
-        { success: false, error: `Missing required fields: ${missingFields.join(', ')}` },
+        { success: false, error: 'Client is required' },
         { status: 400 }
       );
     }
+
+    if (!body.shiftingDate || !body.shiftingTime) {
+      return NextResponse.json(
+        { success: false, error: 'Shifting date and time are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!body.pickupAddress || !body.deliveryAddress) {
+      return NextResponse.json(
+        { success: false, error: 'Pickup and delivery addresses are required' },
+        { status: 400 }
+      );
+    }
+
+    if (!body.items || body.items.length === 0) {
+      return NextResponse.json(
+        { success: false, error: 'At least one item is required' },
+        { status: 400 }
+      );
+    }
+
+    // Calculate totals
+    const subtotal = body.items.reduce(
+      (sum, item) => sum + (item.quantity * item.unitPrice),
+      0
+    );
+
+    // Calculate VAT
+    const vatPercentage = parseFloat(body.vatPercentage) || 15;
+    const vatAmount = Math.round(subtotal * (vatPercentage / 100) * 100) / 100; // Round to 2 decimals
     
-    // Create booking
-    const booking = await Booking.create(body);
+    // Grand total includes VAT
+    const totalAmount = subtotal + vatAmount;
     
+    // Ensure advance amount is a number
+    const advanceAmount = parseFloat(body.advanceAmount) || 0;
+    
+    // Calculate remaining (after advance payment)
+    const remainingAmount = Math.max(0, totalAmount - advanceAmount);
+
+    // Prepare booking data
+    const bookingData = {
+      client: body.client,
+      clientName: body.clientName,
+      clientPhone: body.clientPhone,
+      clientEmail: body.clientEmail || '',
+      shiftingDate: new Date(body.shiftingDate),
+      shiftingTime: body.shiftingTime,
+      pickupAddress: body.pickupAddress,
+      deliveryAddress: body.deliveryAddress,
+      items: body.items.map(item => ({
+        itemId: item.itemId,
+        name: item.name,
+        quantity: item.quantity,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        totalPrice: item.quantity * item.unitPrice,
+      })),
+      subtotal,
+      vatPercentage,
+      vatAmount,
+      totalAmount,
+      advanceAmount,
+      remainingAmount,
+      payments: body.payments || [],
+      assignedStaff: body.assignedStaff || [],
+      notes: body.notes || '',
+      specialInstructions: body.specialInstructions || '',
+      status: body.status || 'pending',
+    };
+
+    // Add quote reference if provided
+    if (body.quote) {
+      bookingData.quote = body.quote;
+      
+      // Update quote status to converted
+      await Quote.findByIdAndUpdate(body.quote, {
+        status: 'converted',
+        convertedToBooking: true,
+      });
+    }
+
+    const booking = await Booking.create(bookingData);
+
     return NextResponse.json({
       success: true,
       message: 'Booking created successfully',
       booking,
     }, { status: 201 });
+
   } catch (error) {
     console.error('Error creating booking:', error);
+    
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return NextResponse.json({
+        success: false,
+        error: 'Validation failed',
+        validationErrors: errors,
+      }, { status: 400 });
+    }
+
     return NextResponse.json(
-      { success: false, error: 'Failed to create booking' },
+      { success: false, error: error.message || 'Failed to create booking' },
       { status: 500 }
     );
   }

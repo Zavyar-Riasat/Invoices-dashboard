@@ -29,9 +29,12 @@ const styles = StyleSheet.create({
     color: '#283593', 
     fontWeight: 'bold', 
     textAlign: 'center',
-    textTransform: 'uppercase'
+    textTransform: 'uppercase',
+      marginBottom: 20,
+      paddingBottom:5
   },
   companySub: { 
+    marginTop: 10,
     textAlign: 'center', 
     color: '#444', 
     marginTop: 2,
@@ -154,6 +157,7 @@ export const MyQuoteDocument = ({ quote, companyInfo }) => (
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.companyName}>{companyInfo.name}</Text>
+        <br/>
         <Text style={styles.companySub}>{companyInfo.address}</Text>
         <Text style={styles.companySub}>Tel: {companyInfo.phone}  |  Email: {companyInfo.email}</Text>
       </View>
@@ -174,7 +178,7 @@ export const MyQuoteDocument = ({ quote, companyInfo }) => (
           <Text style={styles.label}>Quote Details:</Text>
           <Text>Date: {new Date(quote.createdAt).toLocaleDateString()}</Text>
           <Text>Valid For: {quote.validityDays || 30} Days</Text>
-          <Text>Status: {quote.status?.toUpperCase()}</Text>
+          {/* <Text>Status: {quote.status?.toUpperCase()}</Text> */}
         </View>
       </View>
 
