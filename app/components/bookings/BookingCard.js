@@ -27,6 +27,7 @@ import {
   FiAlertCircle,
   FiInfo,
   FiPackage,
+  FiCreditCard,
 } from "react-icons/fi";
 import { format } from "date-fns";
 
@@ -50,6 +51,14 @@ const BookingCard = ({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
+  
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentNotes, setPaymentNotes] = useState("");
+  const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   // Validate booking data
   if (!booking || !booking._id) {
@@ -68,6 +77,15 @@ const BookingCard = ({
     try {
       if (!date) return "Not scheduled";
       return format(new Date(date), "MMM dd, yyyy");
+    } catch {
+      return "Invalid date";
+    }
+  };
+
+  const formatDateTime = (date) => {
+    try {
+      if (!date) return "Not scheduled";
+      return format(new Date(date), "MMM dd, yyyy hh:mm a");
     } catch {
       return "Invalid date";
     }
@@ -132,6 +150,22 @@ const BookingCard = ({
   };
 
   const statusConfig = getStatusConfig(booking.status);
+
+  // Calculate grand total (subtotal + vat)
+  const grandTotal = (booking.subtotal || booking.totalAmount || 0) + (booking.vatAmount || 0);
+  
+  // Calculate total paid so far from payment history
+  const totalPaid = booking.paymentHistory 
+    ? booking.paymentHistory.reduce((sum, payment) => sum + (payment.amount || 0), 0)
+    : (booking.advanceAmount || 0);
+  
+  // Calculate remaining balance
+const roundToTwo = (num) => Math.round(num * 100) / 100;
+
+const remainingBalance = roundToTwo(
+  Math.max(0, roundToTwo(grandTotal) - roundToTwo(totalPaid))
+);
+
 
   const handleUpdateStatus = async (newStatus) => {
     if (
@@ -227,7 +261,6 @@ const BookingCard = ({
         phone: "07577 441 654 / 07775 144 475",
         email: "info@Packattackremovalltd.com",
         website: "www.packattackremovals.com",
-        // registration: "Company Reg: 12345678 | VAT: GB123456789",
       };
 
       // Generate PDF
@@ -265,441 +298,644 @@ const BookingCard = ({
     }
   };
 
+const handleRecordPayment = async () => {
+  const amount = parseFloat(paymentAmount);
+
+  if (!amount || amount <= 0) {
+    setError("Please enter a valid payment amount");
+    return;
+  }
+
+  // 🔥 Small tolerance added to avoid floating precision issues
+  if (amount > remainingBalance + 0.001) {
+    setError(
+      `Payment amount cannot exceed remaining balance of ${formatCurrency(remainingBalance)}`
+    );
+    return;
+  }
+
+  try {
+    setError(null);
+
+    await axios.post("/api/payments", {
+      bookingId: booking._id,
+      amount: Math.round(amount * 100) / 100, // round to 2 decimals
+    });
+
+    setPaymentAmount("");
+    fetchBookingDetails();
+
+  } catch (err) {
+    setError("Failed to record payment");
+  }
+};
+
+
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col relative">
-      {/* Header - Always visible */}
-      <div className="p-4 border-b border-gray-100">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-2.5 rounded-lg ${statusConfig.color}`}>
-              {statusConfig.icon}
-            </div>
-            <div>
-              <h3 className="font-semibold text-gray-900 text-sm">
-                {booking.bookingNumber || "Booking #" + booking._id.slice(-6)}
-              </h3>
-              <p className="text-xs text-gray-500 mt-0.5">
-                <FiCalendar className="inline mr-1" size={12} />
-                {formatDate(booking.shiftingDate)} at{" "}
-                {formatTime(booking.shiftingTime)}
-              </p>
-            </div>
-          </div>
-          <span
-            className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}
-          >
-            {statusConfig.label}
-          </span>
-        </div>
-      </div>
-
-      {/* Compact View - Default */}
-      {!isExpanded ? (
-        <div className="p-4 flex-1">
-          {/* Client Info */}
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FiUser className="text-blue-600" size={14} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {booking.clientName}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                {booking.clientPhone}
-              </p>
-            </div>
-          </div>
-
-          {/* Quick Stats */}
-          <div className="grid grid-cols-3 gap-2 mb-3">
-            <div className="text-center p-2 bg-gray-50 rounded-lg">
-              <FiPackage className="mx-auto text-gray-400 mb-1" size={14} />
-              <p className="text-xs text-gray-500">Items</p>
-              <p className="text-sm font-semibold text-gray-900">
-                {booking.items?.length || 0}
-              </p>
-            </div>
-            <div className="text-center p-2 bg-gray-50 rounded-lg">
-              <FiDollarSign className="mx-auto text-gray-400 mb-1" size={14} />
-              <p className="text-xs text-gray-500">Advance</p>
-              <p className="text-sm font-semibold text-green-600">
-                {formatCurrency(booking.advanceAmount || 0).replace("$", "")}
-              </p>
-            </div>
-            <div className="text-center p-2 bg-gray-50 rounded-lg">
-              <FiTruck className="mx-auto text-gray-400 mb-1" size={14} />
-              <p className="text-xs text-gray-500">Remaining</p>
-              <p className="text-sm font-semibold text-orange-600">
-                {formatCurrency(booking.remainingAmount || 0).replace("$", "")}
-              </p>
-            </div>
-          </div>
-
-          {/* Expand Button */}
-          <button
-            onClick={() => setExpandedBookingId(booking._id)}
-            className="w-full py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition flex items-center justify-center gap-1 border border-gray-200"
-          >
-            <FiChevronDown size={14} />
-            View Details
-          </button>
-        </div>
-      ) : (
-        /* Expanded View */
-        <div className="p-4 flex-1 overflow-y-auto max-h-[500px]">
-          {/* Success/Error Messages */}
-          {successMessage && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
-              <FiCheckCircle className="flex-shrink-0" size={14} />
-              <span className="text-sm">{successMessage}</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
-              <FiAlertCircle className="flex-shrink-0" size={14} />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-
-          <div className="space-y-4">
-            {/* Client Details */}
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <h4 className="text-xs font-medium text-gray-500 mb-2">
-                CLIENT INFORMATION
-              </h4>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <FiUser className="text-gray-400 flex-shrink-0" size={14} />
-                  <span className="text-sm font-medium text-gray-900">
-                    {booking.clientName}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FiPhone className="text-gray-400 flex-shrink-0" size={14} />
-                  <span className="text-sm text-gray-700">
-                    {booking.clientPhone}
-                  </span>
-                </div>
-                {booking.clientEmail && (
-                  <div className="flex items-center gap-2">
-                    <FiMail className="text-gray-400 flex-shrink-0" size={14} />
-                    <span className="text-sm text-gray-700 truncate">
-                      {booking.clientEmail}
-                    </span>
-                  </div>
-                )}
+    <>
+      <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col relative">
+        {/* Header - Always visible */}
+        <div className="p-4 border-b border-gray-100">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`p-2.5 rounded-lg ${statusConfig.color}`}>
+                {statusConfig.icon}
               </div>
-            </div>
-
-            {/* Addresses */}
-            <div>
-              <h4 className="text-xs font-medium text-gray-500 mb-2">
-                ADDRESSES
-              </h4>
-              <div className="space-y-2">
-                <div className="bg-gray-50 p-2 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <FiMapPin
-                      className="text-blue-600 flex-shrink-0 mt-0.5"
-                      size={14}
-                    />
-                    <div>
-                      <p className="text-xs font-medium text-gray-700">
-                        Pickup
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {booking.pickupAddress || "Not specified"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-2 rounded-lg">
-                  <div className="flex items-start gap-2">
-                    <FiMapPin
-                      className="text-green-600 flex-shrink-0 mt-0.5"
-                      size={14}
-                    />
-                    <div>
-                      <p className="text-xs font-medium text-gray-700">
-                        Delivery
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {booking.deliveryAddress || "Not specified"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-2  rounded-lg">
-                  <div className="flex justify-between gap-2">
-                    <div>
-                      <p className="text-xs font-medium text-gray-700">
-                        Shifting Time
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {booking.shiftingTime || "Not specified"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs font-medium text-gray-700">
-                        Shifting Date
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {booking.shiftingDate || "Not specified"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Items List */}
-            {booking.items?.length > 0 && (
               <div>
-                <h4 className="text-xs font-medium text-gray-500 mb-2">
-                  ITEMS
-                </h4>
-                <div className="space-y-2 max-h-32 overflow-y-auto">
-                  {booking.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {item.name}
-                        </p>
-                        <p className="text-xs text-gray-500">
-                          {item.quantity} {item.unit} ×{" "}
-                          {formatCurrency(item.unitPrice)}
-                        </p>
-                      </div>
-                      <p className="text-sm font-semibold text-gray-900 ml-2">
-                        {formatCurrency(item.totalPrice)}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+                <h3 className="font-semibold text-gray-900 text-sm">
+                  {booking.bookingNumber || "Booking #" + booking._id.slice(-6)}
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  <FiCalendar className="inline mr-1" size={12} />
+                  {formatDate(booking.shiftingDate)} at{" "}
+                  {formatTime(booking.shiftingTime)}
+                </p>
+              </div>
+            </div>
+            <span
+              className={`px-2.5 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}
+            >
+              {statusConfig.label}
+            </span>
+          </div>
+        </div>
+
+        {/* Compact View - Default */}
+        {!isExpanded ? (
+          <div className="p-4 flex-1">
+            {/* Client Info */}
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                <FiUser className="text-blue-600" size={14} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-gray-900 truncate">
+                  {booking.clientName}
+                </p>
+                <p className="text-xs text-gray-500 truncate">
+                  {booking.clientPhone}
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-2 mb-3">
+              <div className="text-center p-2 bg-gray-50 rounded-lg">
+                <FiPackage className="mx-auto text-gray-400 mb-1" size={14} />
+                <p className="text-xs text-gray-500">Items</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {booking.items?.length || 0}
+                </p>
+              </div>
+              <div className="text-center p-2 bg-gray-50 rounded-lg">
+                <FiDollarSign className="mx-auto text-gray-400 mb-1" size={14} />
+                <p className="text-xs text-gray-500">Paid</p>
+                <p className="text-sm font-semibold text-green-600">
+                  {formatCurrency(totalPaid).replace("$", "")}
+                </p>
+              </div>
+              <div className="text-center p-2 bg-gray-50 rounded-lg">
+                <FiTruck className="mx-auto text-gray-400 mb-1" size={14} />
+                <p className="text-xs text-gray-500">Remaining</p>
+                <p className="text-sm font-semibold text-orange-600">
+                  {formatCurrency(remainingBalance).replace("$", "")}
+                </p>
+              </div>
+            </div>
+
+            {/* Expand Button */}
+            <button
+              onClick={() => setExpandedBookingId(booking._id)}
+              className="w-full py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition flex items-center justify-center gap-1 border border-gray-200"
+            >
+              <FiChevronDown size={14} />
+              View Details
+            </button>
+          </div>
+        ) : (
+          /* Expanded View */
+          <div className="p-4 flex-1 overflow-y-auto max-h-[500px]">
+            {/* Success/Error Messages */}
+            {successMessage && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+                <FiCheckCircle className="flex-shrink-0" size={14} />
+                <span className="text-sm">{successMessage}</span>
               </div>
             )}
 
-            {/* Payment Summary */}
-            <div className="bg-gray-50 p-3 rounded-lg">
-              <h4 className="text-xs font-medium text-gray-500 mb-2">
-                PAYMENT SUMMARY
-              </h4>
-              <div className="space-y-1.5">
-                <div className="flex justify-between">
-                  <span className="text-xs text-gray-600">Subtotal:</span>
-                  <span className="text-xs font-medium">
-                    {formatCurrency(booking.subtotal || booking.totalAmount || 0)}
-                  </span>
-                </div>
-                {(booking.vatAmount ?? 0) !== 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-xs text-gray-600">VAT ({booking.vatPercentage || 15}%):</span>
-                    <span className="text-xs font-medium text-blue-600">
-                      +{formatCurrency(booking.vatAmount || 0)}
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+                <FiAlertCircle className="flex-shrink-0" size={14} />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              {/* Client Details */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <h4 className="text-xs font-medium text-gray-500 mb-2">
+                  CLIENT INFORMATION
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <FiUser className="text-gray-400 flex-shrink-0" size={14} />
+                    <span className="text-sm font-medium text-gray-900">
+                      {booking.clientName}
                     </span>
                   </div>
-                )}
-                <div className="flex justify-between pt-1.5 border-t border-gray-200 mb-2">
-                  <span className="text-sm font-bold text-gray-900">
-                    Grand Total:
-                  </span>
-                  <span className="text-sm font-bold text-blue-700">
-                    {formatCurrency((booking.subtotal || booking.totalAmount || 0) + (booking.vatAmount || 0))}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-xs text-gray-600">Advance Paid:</span>
-                  <span className="text-xs font-medium text-green-600">
-                    {formatCurrency(booking.advanceAmount || 0)}
-                  </span>
-                </div>
-                <div className="flex justify-between pt-1.5 border-t border-gray-200">
-                  <span className="text-sm font-bold text-gray-900">
-                    Remaining:
-                  </span>
-                  <span className="text-sm font-bold text-orange-600">
-                    {formatCurrency((booking.remainingAmount-booking.advanceAmount) || 0)}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <FiPhone className="text-gray-400 flex-shrink-0" size={14} />
+                    <span className="text-sm text-gray-700">
+                      {booking.clientPhone}
+                    </span>
+                  </div>
+                  {booking.clientEmail && (
+                    <div className="flex items-center gap-2">
+                      <FiMail className="text-gray-400 flex-shrink-0" size={14} />
+                      <span className="text-sm text-gray-700 truncate">
+                        {booking.clientEmail}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
 
-            {/* Notes */}
-            {(booking.notes || booking.specialInstructions) && (
+              {/* Addresses */}
               <div>
                 <h4 className="text-xs font-medium text-gray-500 mb-2">
-                  NOTES
+                  ADDRESSES
                 </h4>
-                {booking.notes && (
-                  <div className="bg-blue-50 p-2 rounded-lg mb-2">
+                <div className="space-y-2">
+                  <div className="bg-gray-50 p-2 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <FiInfo
+                      <FiMapPin
                         className="text-blue-600 flex-shrink-0 mt-0.5"
                         size={14}
                       />
-                      <p className="text-xs text-blue-800">{booking.notes}</p>
+                      <div>
+                        <p className="text-xs font-medium text-gray-700">
+                          Pickup
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {booking.pickupAddress || "Not specified"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                )}
-                {booking.specialInstructions && (
-                  <div className="bg-purple-50 p-2 rounded-lg">
+                  <div className="bg-gray-50 p-2 rounded-lg">
                     <div className="flex items-start gap-2">
-                      <FiAlertCircle
-                        className="text-purple-600 flex-shrink-0 mt-0.5"
+                      <FiMapPin
+                        className="text-green-600 flex-shrink-0 mt-0.5"
                         size={14}
                       />
-                      <p className="text-xs text-purple-800">
-                        {booking.specialInstructions}
-                      </p>
+                      <div>
+                        <p className="text-xs font-medium text-gray-700">
+                          Delivery
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {booking.deliveryAddress || "Not specified"}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                )}
+                  <div className="bg-gray-50 p-2 rounded-lg">
+                    <div className="flex justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-medium text-gray-700">
+                          Shifting Time
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {booking.shiftingTime || "Not specified"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-medium text-gray-700">
+                          Shifting Date
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {booking.shiftingDate || "Not specified"}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-            )}
 
-            {/* Close Button */}
-            <button
-              onClick={() => setExpandedBookingId(null)}
-              className="w-full py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition flex items-center justify-center gap-1 border border-gray-200"
-            >
-              <FiChevronUp size={14} />
-              Close Details
-            </button>
-          </div>
-        </div>
-      )}
+              {/* Items List */}
+              {booking.items?.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-medium text-gray-500 mb-2">
+                    ITEMS
+                  </h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {booking.items.map((item, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-center py-1.5 border-b border-gray-100 last:border-0"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {item.name}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {item.quantity} {item.unit} ×{" "}
+                            {formatCurrency(item.unitPrice)}
+                          </p>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900 ml-2">
+                          {formatCurrency(item.totalPrice)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
-      {/* Actions - Always visible */}
-      <div className="p-3 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
-        <div className="flex flex-wrap gap-1.5 justify-end">
-          <Link
-            href={`/admin/bookings/${booking._id}/edit`}
-            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-            title="Edit Booking"
-          >
-            <FiEdit2 size={16} />
-          </Link>
+              {/* Payment Summary */}
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <h4 className="text-xs font-medium text-gray-500 mb-2">
+                  PAYMENT SUMMARY
+                </h4>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between">
+                    <span className="text-xs text-gray-600">Subtotal:</span>
+                    <span className="text-xs font-medium">
+                      {formatCurrency(booking.subtotal || booking.totalAmount || 0)}
+                    </span>
+                  </div>
+                  {(booking.vatAmount ?? 0) !== 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-xs text-gray-600">VAT ({booking.vatPercentage || 15}%):</span>
+                      <span className="text-xs font-medium text-blue-600">
+                        +{formatCurrency(booking.vatAmount || 0)}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex justify-between pt-1.5 border-t border-gray-200">
+                    <span className="text-sm font-bold text-gray-900">
+                      Grand Total:
+                    </span>
+                    <span className="text-sm font-bold text-blue-700">
+                      {formatCurrency(grandTotal)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-xs text-gray-600">Total Paid:</span>
+                    <span className="text-xs font-medium text-green-600">
+                      {formatCurrency(totalPaid)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-1.5 border-t border-gray-200">
+                    <span className="text-sm font-bold text-gray-900">
+                      Remaining Balance:
+                    </span>
+                    <span className="text-sm font-bold text-orange-600">
+                      {formatCurrency(remainingBalance)}
+                    </span>
+                  </div>
 
-          <div className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
-            <BookingDownloadButton
-              booking={booking}
-              companyInfo={{
-                name: "Pack & Attack Removal Ltd",
-                address:
-                  "Based in London — proudly serving all of Greater London, with nationwide moves available.",
-                phone: "07577 441 654 / 07775 144 475",
-                email: "info@Packattackremovalltd.com",
-                website: "www.packattackremovals.com",
-                registration: "Company Reg: 12345678 | VAT: GB123456789",
-              }}
-            />
-          </div>
+                  {/* Payment History with Dates */}
+                  {booking.paymentHistory && booking.paymentHistory.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-gray-200">
+                      <p className="text-xs font-medium text-gray-500 mb-2">PAYMENT HISTORY</p>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {booking.paymentHistory.map((payment, index) => (
+                          <div key={index} className="flex justify-between items-start text-xs p-2 bg-white rounded-lg">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2">
+                                <FiCalendar className="text-gray-400" size={12} />
+                                <span className="font-medium text-gray-700">
+                                  {formatDateTime(payment.date)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <FiCreditCard className="text-gray-400" size={12} />
+                                <span className="text-gray-600 capitalize">
+                                  {payment.method}
+                                </span>
+                              </div>
+                              {payment.notes && (
+                                <p className="text-gray-500 text-xs mt-1 pl-6">
+                                  {payment.notes}
+                                </p>
+                              )}
+                            </div>
+                            <span className="font-semibold text-green-600 ml-2">
+                              {formatCurrency(payment.amount)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
 
-          <button
-            onClick={handleSendBooking}
-            disabled={sending || loading}
-            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 cursor-pointer  rounded-lg transition disabled:opacity-50"
-            title="Send to client"
-          >
-            {sending ? (
-              <FiLoader className="animate-spin" size={16} />
-            ) : (
-              <FiSend size={16} />
-            )}
-          </button>
+              {/* Notes */}
+              {(booking.notes || booking.specialInstructions) && (
+                <div>
+                  <h4 className="text-xs font-medium text-gray-500 mb-2">
+                    NOTES
+                  </h4>
+                  {booking.notes && (
+                    <div className="bg-blue-50 p-2 rounded-lg mb-2">
+                      <div className="flex items-start gap-2">
+                        <FiInfo
+                          className="text-blue-600 flex-shrink-0 mt-0.5"
+                          size={14}
+                        />
+                        <p className="text-xs text-blue-800">{booking.notes}</p>
+                      </div>
+                    </div>
+                  )}
+                  {booking.specialInstructions && (
+                    <div className="bg-purple-50 p-2 rounded-lg">
+                      <div className="flex items-start gap-2">
+                        <FiAlertCircle
+                          className="text-purple-600 flex-shrink-0 mt-0.5"
+                          size={14}
+                        />
+                        <p className="text-xs text-purple-800">
+                          {booking.specialInstructions}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
-          {(booking.status === "pending" || booking.status === "cancelled") && (
-            <button
-              onClick={handleDeleteBooking}
-              disabled={loading}
-              className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-              title="Delete Booking"
-            >
-              <FiTrash2 size={16} />
-            </button>
-          )}
-        </div>
-
-        {/* Status Update Buttons */}
-        {booking.status !== "cancelled" && booking.status !== "completed" && (
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-gray-200">
-            {booking.status === "pending" && (
-              <>
-                <button
-                  onClick={() => handleUpdateStatus("confirmed")}
-                  disabled={loading}
-                  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-white bg-secondary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  <FiCheckCircle size={14} />
-                  Confirm
-                </button>
-                <button
-                  onClick={() => handleUpdateStatus("cancelled")}
-                  disabled={loading}
-                  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  <FiXCircle size={14} />
-                  Decline
-                </button>
-              </>
-            )}
-
-            {booking.status === "confirmed" && (
+              {/* Close Button */}
               <button
-                onClick={() => handleUpdateStatus("in_progress")}
-                disabled={loading}
-                className="flex-1 px-3 py-2 text-xs font-medium text-white cursor-pointer bg-secondary hover:from-indigo-700 hover:to-indigo-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                onClick={() => setExpandedBookingId(null)}
+                className="w-full py-2 text-xs font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition flex items-center justify-center gap-1 border border-gray-200"
               >
-                <FiLoader size={14} />
-                Start Moving
+                <FiChevronUp size={14} />
+                Close Details
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Actions - Always visible */}
+        <div className="p-3 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+          <div className="flex flex-wrap gap-1.5 justify-end">
+            <Link
+              href={`/admin/bookings/${booking._id}/edit`}
+              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+              title="Edit Booking"
+            >
+              <FiEdit2 size={16} />
+            </Link>
+
+            <div className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+              <BookingDownloadButton
+                booking={booking}
+                companyInfo={{
+                  name: "Pack & Attack Removal Ltd",
+                  address:
+                    "Based in London — proudly serving all of Greater London, with nationwide moves available.",
+                  phone: "07577 441 654 / 07775 144 475",
+                  email: "info@Packattackremovalltd.com",
+                  website: "www.packattackremovals.com",
+                }}
+              />
+            </div>
+
+            <button
+              onClick={handleSendBooking}
+              disabled={sending || loading}
+              className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 cursor-pointer rounded-lg transition disabled:opacity-50"
+              title="Send to client"
+            >
+              {sending ? (
+                <FiLoader className="animate-spin" size={16} />
+              ) : (
+                <FiSend size={16} />
+              )}
+            </button>
+
+            {(booking.status === "pending" || booking.status === "cancelled") && (
+              <button
+                onClick={handleDeleteBooking}
+                disabled={loading}
+                className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+                title="Delete Booking"
+              >
+                <FiTrash2 size={16} />
               </button>
             )}
+          </div>
 
-            {booking.status === "in_progress" && (
-              <button
-                onClick={() => handleUpdateStatus("completed")}
-                disabled={loading}
-                className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-secondary hover:from-green-700 hover:to-green-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-              >
-                <FiCheckCircle size={14} />
-                Complete
-              </button>
-            )}
+          {/* Status Update Buttons */}
+          {booking.status !== "cancelled" && booking.status !== "completed" && (
+            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-gray-200">
+              {booking.status === "pending" && (
+                <>
+                  <button
+                    onClick={() => handleUpdateStatus("confirmed")}
+                    disabled={loading}
+                    className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-white bg-secondary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <FiCheckCircle size={14} />
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => handleUpdateStatus("cancelled")}
+                    disabled={loading}
+                    className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <FiXCircle size={14} />
+                    Decline
+                  </button>
+                </>
+              )}
 
-            {booking.status !== "pending" &&
-              booking.status !== "confirmed" &&
-              booking.status !== "in_progress" && (
+              {booking.status === "confirmed" && (
                 <button
-                  onClick={() => handleUpdateStatus("cancelled")}
+                  onClick={() => handleUpdateStatus("in_progress")}
                   disabled={loading}
-                  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 text-xs font-medium text-white cursor-pointer bg-secondary hover:from-indigo-700 hover:to-indigo-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
-                  <FiXCircle size={14} />
-                  Cancel
+                  <FiLoader size={14} />
+                  Start Moving
                 </button>
               )}
 
-            {booking.status !== "cancelled" &&
-              booking.status !== "completed" &&
-              (booking.remainingAmount || 0) > 0 && (
+              {booking.status === "in_progress" && (
                 <button
-                  onClick={() => alert("Payment functionality coming soon")}
+                  onClick={() => handleUpdateStatus("completed")}
                   disabled={loading}
-                  className="flex-1 px-3 py-2 cursor-pointer  text-xs font-medium text-white bg-primary  rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-secondary hover:from-green-700 hover:to-green-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <FiCheckCircle size={14} />
+                  Complete
+                </button>
+              )}
+
+              {/* Record Payment Button - Always visible when there's remaining balance */}
+              {remainingBalance > 0 && (
+                <button
+                  onClick={() => setShowPaymentModal(true)}
+                  disabled={loading}
+                  className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-primary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   <FiPlus size={14} />
                   Record Payment
                 </button>
               )}
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Record Payment</h3>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {/* Current Balance Info */}
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <div className="flex justify-between text-sm">
+                  <span className="text-blue-700">Grand Total:</span>
+                  <span className="font-bold text-blue-700">{formatCurrency(grandTotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-blue-700">Total Paid:</span>
+                  <span className="font-bold text-green-600">{formatCurrency(totalPaid)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-bold mt-2 pt-2 border-t border-blue-200">
+                  <span className="text-blue-700">Remaining Balance:</span>
+                  <span className="font-bold text-orange-600">{formatCurrency(remainingBalance)}</span>
+                </div>
+              </div>
+
+              {/* Payment Date */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Date *
+                </label>
+                <input
+                  type="date"
+                  value={paymentDate}
+                  onChange={(e) => setPaymentDate(e.target.value)}
+                  max={format(new Date(), "yyyy-MM-dd")}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                />
+              </div>
+
+              {/* Payment Amount */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Amount *
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                    $
+                  </span>
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    // max={remainingBalance.toFixed(2)}
+
+                    value={paymentAmount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Allow any positive number up to remainingBalance
+                      if (value === "") {
+  setPaymentAmount(value);
+  return;
+}
+
+const roundedValue = Math.round(parseFloat(value) * 100) / 100;
+
+if (roundedValue <= remainingBalance) {
+  setPaymentAmount(value);
+}
+
+                    }}
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    placeholder={`Max: ${formatCurrency(remainingBalance).replace('$', '')}`}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Maximum: {formatCurrency(remainingBalance)}
+                </p>
+              </div>
+
+              {/* Payment Method */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Payment Method *
+                </label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="card">Credit/Debit Card</option>
+                  <option value="bank_transfer">Bank Transfer</option>
+                  <option value="check">Check</option>
+                  <option value="online">Online Payment</option>
+                </select>
+              </div>
+
+              {/* Payment Notes */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Notes (Optional)
+                </label>
+                <textarea
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  rows="3"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  placeholder="Add any notes about this payment..."
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRecordPayment}
+                  disabled={processingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || parseFloat(paymentAmount) > remainingBalance}
+                  className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-secondary transition disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {processingPayment ? (
+                    <>
+                      <FiLoader className="animate-spin" size={16} />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <FiCheckCircle size={16} />
+                      Record Payment
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
