@@ -523,7 +523,7 @@ const BookingCard = ({
                     Remaining:
                   </span>
                   <span className="text-sm font-bold text-orange-600">
-                    {formatCurrency(booking.remainingAmount || 0)}
+                    {formatCurrency((booking.remainingAmount-booking.advanceAmount) || 0)}
                   </span>
                 </div>
               </div>
@@ -603,7 +603,7 @@ const BookingCard = ({
           <button
             onClick={handleSendBooking}
             disabled={sending || loading}
-            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
+            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 cursor-pointer  rounded-lg transition disabled:opacity-50"
             title="Send to client"
           >
             {sending ? (
@@ -627,13 +627,13 @@ const BookingCard = ({
 
         {/* Status Update Buttons */}
         {booking.status !== "cancelled" && booking.status !== "completed" && (
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-200">
+          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-gray-200">
             {booking.status === "pending" && (
               <>
                 <button
                   onClick={() => handleUpdateStatus("confirmed")}
                   disabled={loading}
-                  className="flex-1 px-3 py-2 text-xs font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-white bg-secondary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   <FiCheckCircle size={14} />
                   Confirm
@@ -641,7 +641,7 @@ const BookingCard = ({
                 <button
                   onClick={() => handleUpdateStatus("cancelled")}
                   disabled={loading}
-                  className="flex-1 px-3 py-2 text-xs font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   <FiXCircle size={14} />
                   Decline
@@ -653,7 +653,7 @@ const BookingCard = ({
               <button
                 onClick={() => handleUpdateStatus("in_progress")}
                 disabled={loading}
-                className="flex-1 px-3 py-2 text-xs font-medium text-white bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 px-3 py-2 text-xs font-medium text-white cursor-pointer bg-secondary hover:from-indigo-700 hover:to-indigo-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 <FiLoader size={14} />
                 Start Moving
@@ -664,7 +664,7 @@ const BookingCard = ({
               <button
                 onClick={() => handleUpdateStatus("completed")}
                 disabled={loading}
-                className="flex-1 px-3 py-2 text-xs font-medium text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-secondary hover:from-green-700 hover:to-green-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
               >
                 <FiCheckCircle size={14} />
                 Complete
@@ -677,7 +677,7 @@ const BookingCard = ({
                 <button
                   onClick={() => handleUpdateStatus("cancelled")}
                   disabled={loading}
-                  className="flex-1 px-3 py-2 text-xs font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   <FiXCircle size={14} />
                   Cancel
@@ -690,7 +690,7 @@ const BookingCard = ({
                 <button
                   onClick={() => alert("Payment functionality coming soon")}
                   disabled={loading}
-                  className="flex-1 px-3 py-2 text-xs font-medium text-white bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  className="flex-1 px-3 py-2 cursor-pointer  text-xs font-medium text-white bg-primary  rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
                 >
                   <FiPlus size={14} />
                   Record Payment
