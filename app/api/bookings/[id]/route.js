@@ -39,9 +39,16 @@ export async function PUT(request, { params }) {
     const { id } = await params;
     const body = await request.json();
     
+    // Remove fields that shouldn't be directly updated
+    const updateData = { ...body };
+    delete updateData._id;
+    delete updateData.bookingNumber;
+    delete updateData.createdAt;
+    delete updateData.updatedAt;
+    
     const booking = await Booking.findByIdAndUpdate(
       id,
-      { $set: body },
+      { $set: updateData },
       { new: true, runValidators: true }
     );
     
@@ -59,8 +66,18 @@ export async function PUT(request, { params }) {
     });
   } catch (error) {
     console.error('Error updating booking:', error);
+    
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return NextResponse.json({
+        success: false,
+        error: 'Validation failed',
+        validationErrors: errors,
+      }, { status: 400 });
+    }
+    
     return NextResponse.json(
-      { success: false, error: 'Failed to update booking' },
+      { success: false, error: error.message || 'Failed to update booking' },
       { status: 500 }
     );
   }

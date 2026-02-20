@@ -709,12 +709,12 @@ const handleRecordPayment = async () => {
         <div className="p-3 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
           <div className="flex flex-wrap gap-1.5 justify-end">
             <Link
-              href={`/admin/bookings/${booking._id}/edit`}
-              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-              title="Edit Booking"
-            >
-              <FiEdit2 size={16} />
-            </Link>
+  href={`/admin/bookings/edit/${booking._id}`}
+  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+  title="Edit Booking"
+>
+  <FiEdit2 size={16} />
+</Link>
 
             <div className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
               <BookingDownloadButton
