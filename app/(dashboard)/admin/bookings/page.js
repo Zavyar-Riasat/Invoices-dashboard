@@ -241,7 +241,7 @@ export default function BookingsPage() {
         </div>
 
         {/* Confirmed */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+        {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500 mb-1">Confirmed</p>
@@ -251,7 +251,8 @@ export default function BookingsPage() {
               <FiCheckCircle className="text-blue-600" size={20} />
             </div>
           </div>
-        </div>
+        </div> */}
+        
 
         {/* In Progress */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -265,11 +266,6 @@ export default function BookingsPage() {
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Second Row - More Status and Payment Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        {/* Completed */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="flex items-center justify-between">
             <div>
@@ -281,6 +277,12 @@ export default function BookingsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Second Row - More Status and Payment Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Completed */}
+        
 
         {/* Cancelled */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">

@@ -743,7 +743,8 @@ const handleRecordPayment = async () => {
               )}
             </button>
 
-            {(booking.status === "pending" || booking.status === "cancelled") && (
+            {(booking.status === "pending" || booking.status === "cancelled"||
+  booking.status === "completed"||booking.status === "confirmed"|| booking.status === "in_progress") && (
               <button
                 onClick={handleDeleteBooking}
                 disabled={loading}
@@ -761,13 +762,13 @@ const handleRecordPayment = async () => {
               {booking.status === "pending" && (
                 <>
                   <button
-                    onClick={() => handleUpdateStatus("confirmed")}
-                    disabled={loading}
-                    className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-white bg-secondary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <FiCheckCircle size={14} />
-                    Confirm
-                  </button>
+  onClick={() => handleUpdateStatus("in_progress")}
+  disabled={loading}
+  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-white bg-secondary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+>
+  <FiCheckCircle size={14} />
+  Confirm
+</button>
                   <button
                     onClick={() => handleUpdateStatus("cancelled")}
                     disabled={loading}
@@ -780,15 +781,15 @@ const handleRecordPayment = async () => {
               )}
 
               {booking.status === "confirmed" && (
-                <button
-                  onClick={() => handleUpdateStatus("in_progress")}
-                  disabled={loading}
-                  className="flex-1 px-3 py-2 text-xs font-medium text-white cursor-pointer bg-secondary hover:from-indigo-700 hover:to-indigo-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  <FiLoader size={14} />
-                  Start Moving
-                </button>
-              )}
+  <button
+    onClick={() => handleUpdateStatus("cancelled")}
+    disabled={loading}
+    className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
+  >
+    <FiXCircle size={14} />
+    Decline
+  </button>
+)}
 
               {booking.status === "in_progress" && (
                 <button
@@ -802,16 +803,17 @@ const handleRecordPayment = async () => {
               )}
 
               {/* Record Payment Button - Always visible when there's remaining balance */}
-              {remainingBalance > 0 && (
-                <button
-                  onClick={() => setShowPaymentModal(true)}
-                  disabled={loading}
-                  className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-primary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  <FiPlus size={14} />
-                  Record Payment
-                </button>
-              )}
+              {["confirmed", "in_progress"].includes(booking.status) &&
+  remainingBalance > 0 && (
+    <button
+      onClick={() => setShowPaymentModal(true)}
+      disabled={loading}
+      className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-primary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+    >
+      <FiPlus size={14} />
+      Record Payment
+    </button>
+)}
             </div>
           )}
         </div>
