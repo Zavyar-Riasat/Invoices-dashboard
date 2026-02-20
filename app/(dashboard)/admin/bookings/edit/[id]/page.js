@@ -221,55 +221,56 @@ export default function EditBookingPage() {
     }));
   }, [formData.items, formData.advanceAmount, formData.vatPercentage, formData.paymentHistory]);
 
-  const fetchBookingData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`/api/bookings/${bookingId}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch booking");
-      }
-      const data = await response.json();
-      if (data.success) {
-        const booking = data.booking;
-        
-        // Format dates for input fields
-        const shiftingDate = booking.shiftingDate 
-          ? new Date(booking.shiftingDate).toISOString().split('T')[0]
-          : "";
-        
-        setFormData({
-          client: booking.client?._id || booking.client || "",
-          clientName: booking.clientName || "",
-          clientPhone: booking.clientPhone || "",
-          clientEmail: booking.clientEmail || "",
-          quote: booking.quote?._id || booking.quote || "",
-          shiftingDate: shiftingDate,
-          shiftingTime: booking.shiftingTime || "",
-          pickupAddress: booking.pickupAddress || "",
-          deliveryAddress: booking.deliveryAddress || "",
-          items: booking.items || [],
-          totalAmount: booking.totalAmount || 0,
-          advanceAmount: booking.advanceAmount || 0,
-          remainingAmount: booking.remainingAmount || 0,
-          vatPercentage: booking.vatPercentage || 15,
-          vatAmount: booking.vatAmount || 0,
-          payments: booking.payments || [],
-          paymentHistory: booking.paymentHistory || [],
-          assignedStaff: booking.assignedStaff || [],
-          notes: booking.notes || "",
-          specialInstructions: booking.specialInstructions || "",
-          status: booking.status || "pending",
-        });
-
-        setSearchClient(booking.clientName || "");
-      }
-    } catch (error) {
-      console.error("Error fetching booking:", error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+ const fetchBookingData = async () => {
+  try {
+    setLoading(true);
+    const response = await fetch(`/api/bookings/${bookingId}`);
+    if (!response.ok) {
+      throw new Error("Failed to fetch booking");
     }
-  };
+    const data = await response.json();
+    if (data.success) {
+      const booking = data.booking;
+      
+      // Format dates for input fields
+      const shiftingDate = booking.shiftingDate 
+        ? new Date(booking.shiftingDate).toISOString().split('T')[0]
+        : "";
+      
+      setFormData({
+        client: booking.client?._id || booking.client || "",
+        clientName: booking.clientName || "",
+        clientPhone: booking.clientPhone || "",
+        clientEmail: booking.clientEmail || "",
+        // Fix: Set quote to null if empty string, otherwise keep the ID
+        quote: booking.quote?._id || booking.quote || null,
+        shiftingDate: shiftingDate,
+        shiftingTime: booking.shiftingTime || "",
+        pickupAddress: booking.pickupAddress || "",
+        deliveryAddress: booking.deliveryAddress || "",
+        items: booking.items || [],
+        totalAmount: booking.totalAmount || 0,
+        advanceAmount: booking.advanceAmount || 0,
+        remainingAmount: booking.remainingAmount || 0,
+        vatPercentage: booking.vatPercentage || 15,
+        vatAmount: booking.vatAmount || 0,
+        payments: booking.payments || [],
+        paymentHistory: booking.paymentHistory || [],
+        assignedStaff: booking.assignedStaff || [],
+        notes: booking.notes || "",
+        specialInstructions: booking.specialInstructions || "",
+        status: booking.status || "pending",
+      });
+
+      setSearchClient(booking.clientName || "");
+    }
+  } catch (error) {
+    console.error("Error fetching booking:", error);
+    setError(error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchClients = async () => {
     try {
@@ -426,40 +427,46 @@ const handleUpdateItem = (index, field, value) => {
     return true;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setSaving(true);
-    try {
-      const submitData = {
-        ...formData,
-        shiftingDate: new Date(formData.shiftingDate).toISOString(),
-        advanceAmount: Math.floor(parseFloat(formData.advanceAmount) || 0),
-        vatPercentage: parseFloat(formData.vatPercentage) || 15,
-      };
-
-      const response = await fetch(`/api/bookings/${bookingId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submitData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to update booking");
-      }
-
-      alert("Booking updated successfully!");
-      router.push("/admin/bookings");
-    } catch (error) {
-      console.error("Error:", error);
-      alert(`Error: ${error.message}`);
-    } finally {
-      setSaving(false);
+  setSaving(true);
+  try {
+    // Create a copy of formData
+    const submitData = {
+      ...formData,
+      shiftingDate: new Date(formData.shiftingDate).toISOString(),
+      advanceAmount: Math.floor(parseFloat(formData.advanceAmount) || 0),
+      vatPercentage: parseFloat(formData.vatPercentage) || 15,
+    };
+    
+    // Remove quote if it's empty string or null
+    if (!submitData.quote) {
+      delete submitData.quote;
     }
-  };
+
+    const response = await fetch(`/api/bookings/${bookingId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(submitData),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to update booking");
+    }
+
+    alert("Booking updated successfully!");
+    router.push("/admin/bookings");
+  } catch (error) {
+    console.error("Error:", error);
+    alert(`Error: ${error.message}`);
+  } finally {
+    setSaving(false);
+  }
+};
 
   const handleDeletePayment = async (paymentIndex) => {
     if (!window.confirm("Are you sure you want to delete this payment record?")) {

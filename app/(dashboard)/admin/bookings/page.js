@@ -205,7 +205,7 @@ export default function BookingsPage() {
         </div>
         <Link
           href="/admin/bookings/create"
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+          className="px-4 py-2 bg-primary cursor-pointer text-white rounded-lg hover:bg-secondary transition flex items-center gap-2"
         >
           <FiPlus />
           New Booking
@@ -213,7 +213,7 @@ export default function BookingsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Total Bookings */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="flex items-center justify-between">
@@ -280,7 +280,7 @@ export default function BookingsPage() {
       </div>
 
       {/* Second Row - More Status and Payment Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {/* Completed */}
         
 

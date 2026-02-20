@@ -858,22 +858,24 @@ const handleSubmit = async (e) => {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-700 mb-1">
-                            Unit Price
-                          </label>
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={item.unitPrice}
-                            onChange={(e) => handleUpdateItem(
-                              index,
-                              "unitPrice",
-                              parseFloat(e.target.value) || 0
-                            )}
-                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                          />
-                        </div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">
+                    Unit Price
+                  </label>
+                  {/* Unit Price - Read Only */}
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={item.unitPrice}
+                      readOnly
+                      disabled
+                      className="w-full px-2 py-1.5 text-sm bg-gray-100 border border-gray-300 rounded-md text-gray-700 cursor-not-allowed"
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                      {/* <span className="text-xs text-gray-500">(fixed)</span> */}
+                    </div>
+                  </div>
+                  {/* <p className="text-xs text-gray-500 mt-1">Price is fixed</p> */}
+                </div>
                         <div>
                           <label className="block text-xs font-medium text-gray-700 mb-1">
                             Total

@@ -31,7 +31,6 @@ import {
 } from "react-icons/fi";
 import { format } from "date-fns";
 
-
 // Dynamically import PDF components
 const BookingDownloadButton = dynamic(
   () =>
@@ -52,16 +51,18 @@ const BookingCard = ({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-  
+
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [paymentNotes, setPaymentNotes] = useState("");
-  const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [paymentDate, setPaymentDate] = useState(
+    format(new Date(), "yyyy-MM-dd"),
+  );
   const [processingPayment, setProcessingPayment] = useState(false);
-// Add this near the top of the component, after the props
-console.log("BookingCard rendered with booking ID:", booking?._id);
+  // Add this near the top of the component, after the props
+  console.log("BookingCard rendered with booking ID:", booking?._id);
   // Validate booking data
   if (!booking || !booking._id) {
     return (
@@ -154,20 +155,23 @@ console.log("BookingCard rendered with booking ID:", booking?._id);
   const statusConfig = getStatusConfig(booking.status);
 
   // Calculate grand total (subtotal + vat)
-  const grandTotal = (booking.subtotal || booking.totalAmount || 0) + (booking.vatAmount || 0);
-  
+  const grandTotal =
+    (booking.subtotal || booking.totalAmount || 0) + (booking.vatAmount || 0);
+
   // Calculate total paid so far from payment history
-  const totalPaid = booking.paymentHistory 
-    ? booking.paymentHistory.reduce((sum, payment) => sum + (payment.amount || 0), 0)
-    : (booking.advanceAmount || 0);
-  
+  const totalPaid = booking.paymentHistory
+    ? booking.paymentHistory.reduce(
+        (sum, payment) => sum + (payment.amount || 0),
+        0,
+      )
+    : booking.advanceAmount || 0;
+
   // Calculate remaining balance
-const roundToTwo = (num) => Math.round(num * 100) / 100;
+  const roundToTwo = (num) => Math.round(num * 100) / 100;
 
-const remainingBalance = roundToTwo(
-  Math.max(0, roundToTwo(grandTotal) - roundToTwo(totalPaid))
-);
-
+  const remainingBalance = roundToTwo(
+    Math.max(0, roundToTwo(grandTotal) - roundToTwo(totalPaid)),
+  );
 
   const handleUpdateStatus = async (newStatus) => {
     if (
@@ -250,8 +254,7 @@ const remainingBalance = roundToTwo(
       return;
     }
 
-    if (!confirm(`Send PDF to ${booking.clientEmail}?`))
-      return;
+    if (!confirm(`Send PDF to ${booking.clientEmail}?`)) return;
 
     setSending(true);
     setError(null);
@@ -300,65 +303,68 @@ const remainingBalance = roundToTwo(
     }
   };
 
-const handleRecordPayment = async () => {
-  // 1. Initial Validation
-  const amount = parseFloat(paymentAmount);
-  
-  if (!paymentAmount || isNaN(amount) || amount <= 0) {
-    alert("Please enter a valid payment amount.");
-    return;
-  }
+  const handleRecordPayment = async () => {
+    // 1. Initial Validation
+    const amount = parseFloat(paymentAmount);
 
-  if (amount > remainingBalance + 0.01) {
-    alert(`Payment cannot exceed the remaining balance of ${formatCurrency(remainingBalance)}`);
-    return;
-  }
-
-  setProcessingPayment(true);
-
-  try {
-    // 2. API Call
-    const response = await fetch(`/api/bookings/${booking._id}/payments`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        amount: amount,
-        paymentDate: paymentDate,
-        paymentMethod: paymentMethod,
-        notes: paymentNotes,
-      }),
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      throw new Error(result.error || result.message || "Failed to record payment");
+    if (!paymentAmount || isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid payment amount.");
+      return;
     }
 
-    // 3. Success Actions
-    alert("Payment recorded successfully!");
-    
-    // Reset Modal Fields
-    setPaymentAmount("");
-    setPaymentNotes("");
-    setPaymentDate(format(new Date(), "yyyy-MM-dd"));
-    setPaymentMethod("cash");
-    setShowPaymentModal(false);
-
-    // 4. Refresh the data
-    if (typeof onRefresh === "function") {
-      onRefresh();
+    if (amount > remainingBalance + 0.01) {
+      alert(
+        `Payment cannot exceed the remaining balance of ${formatCurrency(remainingBalance)}`,
+      );
+      return;
     }
 
-  } catch (error) {
-    console.error("Payment Error:", error);
-    alert(error.message || "An error occurred while processing the payment.");
-  } finally {
-    setProcessingPayment(false);
-  }
-};
+    setProcessingPayment(true);
+
+    try {
+      // 2. API Call
+      const response = await fetch(`/api/bookings/${booking._id}/payments`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          amount: amount,
+          paymentDate: paymentDate,
+          paymentMethod: paymentMethod,
+          notes: paymentNotes,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || result.message || "Failed to record payment",
+        );
+      }
+
+      // 3. Success Actions
+      alert("Payment recorded successfully!");
+
+      // Reset Modal Fields
+      setPaymentAmount("");
+      setPaymentNotes("");
+      setPaymentDate(format(new Date(), "yyyy-MM-dd"));
+      setPaymentMethod("cash");
+      setShowPaymentModal(false);
+
+      // 4. Refresh the data
+      if (typeof onRefresh === "function") {
+        onRefresh();
+      }
+    } catch (error) {
+      console.error("Payment Error:", error);
+      alert(error.message || "An error occurred while processing the payment.");
+    } finally {
+      setProcessingPayment(false);
+    }
+  };
 
   return (
     <>
@@ -417,7 +423,10 @@ const handleRecordPayment = async () => {
                 </p>
               </div>
               <div className="text-center p-2 bg-gray-50 rounded-lg">
-                <FiDollarSign className="mx-auto text-gray-400 mb-1" size={14} />
+                <FiDollarSign
+                  className="mx-auto text-gray-400 mb-1"
+                  size={14}
+                />
                 <p className="text-xs text-gray-500">Paid</p>
                 <p className="text-sm font-semibold text-green-600">
                   {formatCurrency(totalPaid).replace("$", "")}
@@ -473,14 +482,20 @@ const handleRecordPayment = async () => {
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <FiPhone className="text-gray-400 flex-shrink-0" size={14} />
+                    <FiPhone
+                      className="text-gray-400 flex-shrink-0"
+                      size={14}
+                    />
                     <span className="text-sm text-gray-700">
                       {booking.clientPhone}
                     </span>
                   </div>
                   {booking.clientEmail && (
                     <div className="flex items-center gap-2">
-                      <FiMail className="text-gray-400 flex-shrink-0" size={14} />
+                      <FiMail
+                        className="text-gray-400 flex-shrink-0"
+                        size={14}
+                      />
                       <span className="text-sm text-gray-700 truncate">
                         {booking.clientEmail}
                       </span>
@@ -589,12 +604,16 @@ const handleRecordPayment = async () => {
                   <div className="flex justify-between">
                     <span className="text-xs text-gray-600">Subtotal:</span>
                     <span className="text-xs font-medium">
-                      {formatCurrency(booking.subtotal || booking.totalAmount || 0)}
+                      {formatCurrency(
+                        booking.subtotal || booking.totalAmount || 0,
+                      )}
                     </span>
                   </div>
                   {(booking.vatAmount ?? 0) !== 0 && (
                     <div className="flex justify-between">
-                      <span className="text-xs text-gray-600">VAT ({booking.vatPercentage || 15}%):</span>
+                      <span className="text-xs text-gray-600">
+                        VAT ({booking.vatPercentage || 15}%):
+                      </span>
                       <span className="text-xs font-medium text-blue-600">
                         +{formatCurrency(booking.vatAmount || 0)}
                       </span>
@@ -624,39 +643,51 @@ const handleRecordPayment = async () => {
                   </div>
 
                   {/* Payment History with Dates */}
-                  {booking.paymentHistory && booking.paymentHistory.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <p className="text-xs font-medium text-gray-500 mb-2">PAYMENT HISTORY</p>
-                      <div className="space-y-2 max-h-32 overflow-y-auto">
-                        {booking.paymentHistory.map((payment, index) => (
-                          <div key={index} className="flex justify-between items-start text-xs p-2 bg-white rounded-lg">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
-                                <FiCalendar className="text-gray-400" size={12} />
-                                <span className="font-medium text-gray-700">
-                                  {formatDateTime(payment.date)}
-                                </span>
+                  {booking.paymentHistory &&
+                    booking.paymentHistory.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-xs font-medium text-gray-500 mb-2">
+                          PAYMENT HISTORY
+                        </p>
+                        <div className="space-y-2 max-h-32 overflow-y-auto">
+                          {booking.paymentHistory.map((payment, index) => (
+                            <div
+                              key={index}
+                              className="flex justify-between items-start text-xs p-2 bg-white rounded-lg"
+                            >
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <FiCalendar
+                                    className="text-gray-400"
+                                    size={12}
+                                  />
+                                  <span className="font-medium text-gray-700">
+                                    {formatDateTime(payment.date)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2 mt-1">
+                                  <FiCreditCard
+                                    className="text-gray-400"
+                                    size={12}
+                                  />
+                                  <span className="text-gray-600 capitalize">
+                                    {payment.method}
+                                  </span>
+                                </div>
+                                {payment.notes && (
+                                  <p className="text-gray-500 text-xs mt-1 pl-6">
+                                    {payment.notes}
+                                  </p>
+                                )}
                               </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <FiCreditCard className="text-gray-400" size={12} />
-                                <span className="text-gray-600 capitalize">
-                                  {payment.method}
-                                </span>
-                              </div>
-                              {payment.notes && (
-                                <p className="text-gray-500 text-xs mt-1 pl-6">
-                                  {payment.notes}
-                                </p>
-                              )}
+                              <span className="font-semibold text-green-600 ml-2">
+                                {formatCurrency(payment.amount)}
+                              </span>
                             </div>
-                            <span className="font-semibold text-green-600 ml-2">
-                              {formatCurrency(payment.amount)}
-                            </span>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
                 </div>
               </div>
 
@@ -706,15 +737,15 @@ const handleRecordPayment = async () => {
         )}
 
         {/* Actions - Always visible */}
-        <div className="p-3 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
+        <div className="p-2 -pb-2 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
           <div className="flex flex-wrap gap-1.5 justify-end">
             <Link
-  href={`/admin/bookings/edit/${booking._id}`}
-  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-  title="Edit Booking"
->
-  <FiEdit2 size={16} />
-</Link>
+              href={`/admin/bookings/edit/${booking._id}`}
+              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+              title="Edit Booking"
+            >
+              <FiEdit2 size={16} />
+            </Link>
 
             <div className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
               <BookingDownloadButton
@@ -743,8 +774,11 @@ const handleRecordPayment = async () => {
               )}
             </button>
 
-            {(booking.status === "pending" || booking.status === "cancelled"||
-  booking.status === "completed"||booking.status === "confirmed"|| booking.status === "in_progress") && (
+            {(booking.status === "pending" ||
+              booking.status === "cancelled" ||
+              booking.status === "completed" ||
+              booking.status === "confirmed" ||
+              booking.status === "in_progress") && (
               <button
                 onClick={handleDeleteBooking}
                 disabled={loading}
@@ -762,13 +796,13 @@ const handleRecordPayment = async () => {
               {booking.status === "pending" && (
                 <>
                   <button
-  onClick={() => handleUpdateStatus("in_progress")}
-  disabled={loading}
-  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-white bg-secondary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
->
-  <FiCheckCircle size={14} />
-  Confirm
-</button>
+                    onClick={() => handleUpdateStatus("in_progress")}
+                    disabled={loading}
+                    className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-white bg-secondary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <FiCheckCircle size={14} />
+                    Confirm
+                  </button>
                   <button
                     onClick={() => handleUpdateStatus("cancelled")}
                     disabled={loading}
@@ -781,15 +815,15 @@ const handleRecordPayment = async () => {
               )}
 
               {booking.status === "confirmed" && (
-  <button
-    onClick={() => handleUpdateStatus("cancelled")}
-    disabled={loading}
-    className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
-  >
-    <FiXCircle size={14} />
-    Decline
-  </button>
-)}
+                <button
+                  onClick={() => handleUpdateStatus("cancelled")}
+                  disabled={loading}
+                  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  <FiXCircle size={14} />
+                  Decline
+                </button>
+              )}
 
               {booking.status === "in_progress" && (
                 <button
@@ -804,16 +838,16 @@ const handleRecordPayment = async () => {
 
               {/* Record Payment Button - Always visible when there's remaining balance */}
               {["confirmed", "in_progress"].includes(booking.status) &&
-  remainingBalance > 0 && (
-    <button
-      onClick={() => setShowPaymentModal(true)}
-      disabled={loading}
-      className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-primary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-    >
-      <FiPlus size={14} />
-      Record Payment
-    </button>
-)}
+                remainingBalance > 0 && (
+                  <button
+                    onClick={() => setShowPaymentModal(true)}
+                    disabled={loading}
+                    className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-primary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    <FiPlus size={14} />
+                    Record Payment
+                  </button>
+                )}
             </div>
           )}
         </div>
@@ -824,7 +858,9 @@ const handleRecordPayment = async () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Record Payment</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Record Payment
+              </h3>
               <button
                 onClick={() => setShowPaymentModal(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition"
@@ -838,15 +874,21 @@ const handleRecordPayment = async () => {
               <div className="bg-blue-50 p-3 rounded-lg">
                 <div className="flex justify-between text-sm">
                   <span className="text-blue-700">Grand Total:</span>
-                  <span className="font-bold text-blue-700">{formatCurrency(grandTotal)}</span>
+                  <span className="font-bold text-blue-700">
+                    {formatCurrency(grandTotal)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm mt-1">
                   <span className="text-blue-700">Total Paid:</span>
-                  <span className="font-bold text-green-600">{formatCurrency(totalPaid)}</span>
+                  <span className="font-bold text-green-600">
+                    {formatCurrency(totalPaid)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm font-bold mt-2 pt-2 border-t border-blue-200">
                   <span className="text-blue-700">Remaining Balance:</span>
-                  <span className="font-bold text-orange-600">{formatCurrency(remainingBalance)}</span>
+                  <span className="font-bold text-orange-600">
+                    {formatCurrency(remainingBalance)}
+                  </span>
                 </div>
               </div>
 
@@ -874,27 +916,31 @@ const handleRecordPayment = async () => {
                     $
                   </span>
                   <input
-  type="number"
-  min="0.01"
-  step="0.01"
-  value={paymentAmount}
-  onChange={(e) => {
-    const value = e.target.value;
-    if (value === "") {
-      setPaymentAmount(value);
-      return;
-    }
-    
-    const roundedValue = Math.round(parseFloat(value) * 100) / 100;
-    
-    // Check if the value is a valid number and not exceeding remaining balance
-    if (!isNaN(roundedValue) && roundedValue <= remainingBalance) {
-      setPaymentAmount(value);
-    }
-  }}
-  className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-  placeholder={`Max: ${formatCurrency(remainingBalance).replace('$', '')}`}
-/>
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={paymentAmount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "") {
+                        setPaymentAmount(value);
+                        return;
+                      }
+
+                      const roundedValue =
+                        Math.round(parseFloat(value) * 100) / 100;
+
+                      // Check if the value is a valid number and not exceeding remaining balance
+                      if (
+                        !isNaN(roundedValue) &&
+                        roundedValue <= remainingBalance
+                      ) {
+                        setPaymentAmount(value);
+                      }
+                    }}
+                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                    placeholder={`Max: ${formatCurrency(remainingBalance).replace("$", "")}`}
+                  />
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Maximum: {formatCurrency(remainingBalance)}
@@ -943,7 +989,12 @@ const handleRecordPayment = async () => {
                 </button>
                 <button
                   onClick={handleRecordPayment}
-                  disabled={processingPayment || !paymentAmount || parseFloat(paymentAmount) <= 0 || parseFloat(paymentAmount) > remainingBalance}
+                  disabled={
+                    processingPayment ||
+                    !paymentAmount ||
+                    parseFloat(paymentAmount) <= 0 ||
+                    parseFloat(paymentAmount) > remainingBalance
+                  }
                   className="flex-1 px-4 py-2 bg-primary text-white rounded-lg font-medium hover:bg-secondary transition disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {processingPayment ? (

@@ -46,6 +46,11 @@ export async function PUT(request, { params }) {
     delete updateData.createdAt;
     delete updateData.updatedAt;
     
+    // Handle quote field - if it's null or empty, remove it from update
+    if (updateData.quote === null || updateData.quote === "") {
+      delete updateData.quote;
+    }
+    
     const booking = await Booking.findByIdAndUpdate(
       id,
       { $set: updateData },
