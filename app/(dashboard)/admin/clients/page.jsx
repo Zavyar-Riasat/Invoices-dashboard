@@ -33,6 +33,9 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState(null);
   const [expandedClientId, setExpandedClientId] = useState(null);
 
+  // Stats loading states
+  const [loadingStats, setLoadingStats] = useState({});
+
   // Filters
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -57,6 +60,36 @@ export default function ClientsPage() {
     hasNextPage: false,
     hasPrevPage: false,
   });
+
+  // Fetch stats for a single client
+  const fetchClientStats = async (clientId) => {
+    try {
+      setLoadingStats(prev => ({ ...prev, [clientId]: true }));
+      const response = await fetch(`/api/clients/${clientId}/stats`);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update the client with stats
+        setClients(prevClients => 
+          prevClients.map(client => 
+            client._id === clientId 
+              ? { ...client, stats: data.stats }
+              : client
+          )
+        );
+      }
+    } catch (error) {
+      console.error(`Error fetching stats for client ${clientId}:`, error);
+    } finally {
+      setLoadingStats(prev => ({ ...prev, [clientId]: false }));
+    }
+  };
+
+  // Fetch stats for all clients in parallel
+  const fetchAllClientsStats = async (clientsList) => {
+    const statsPromises = clientsList.map(client => fetchClientStats(client._id));
+    await Promise.all(statsPromises);
+  };
 
   // Fetch clients with error handling
   const fetchClients = async () => {
@@ -111,6 +144,9 @@ export default function ClientsPage() {
           totalRevenue,
           totalDeliveries,
         });
+
+        // Fetch stats for all clients after loading them
+        await fetchAllClientsStats(data.clients || []);
       } else {
         throw new Error(data.error || "Failed to fetch clients");
       }
@@ -413,7 +449,7 @@ export default function ClientsPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-1 gap-6">
         <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
@@ -428,7 +464,7 @@ export default function ClientsPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+        {/* <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-500">Total Revenue</p>
@@ -454,7 +490,7 @@ export default function ClientsPage() {
               <FiPackage className="text-orange-600 text-xl" />
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       {/* Filters & Search */}
@@ -587,11 +623,12 @@ export default function ClientsPage() {
                     expandedClientId === client._id ? null : client._id,
                   )
                 }
+                loadingStats={loadingStats[client._id]}
               />
             ))}
           </div>
 
-          {/* Pagination Controls - NEW SECTION */}
+          {/* Pagination Controls */}
           {pagination.pages > 1 && (
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -693,27 +730,6 @@ export default function ClientsPage() {
                     <FiChevronsRight />
                   </button>
                 </div>
-
-                {/* Page Size Selector (Optional) */}
-                {/* <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span>Show:</span>
-                  <select
-                    value={limit}
-                    onChange={(e) => {
-                      // If you want to allow changing page size
-                      // You'll need to make limit stateful instead of constant
-                      console.log("Page size changed to:", e.target.value);
-                    }}
-                    className="border rounded px-2 py-1"
-                    disabled // Enable this if you want to allow changing page size
-                  >
-                    <option value="10">10</option>
-                    <option value="25">25</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                  </select>
-                  <span>per page</span>
-                </div> */}
               </div>
             </div>
           )}
