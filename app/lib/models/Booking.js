@@ -198,16 +198,26 @@ const bookingSchema = new mongoose.Schema(
 // ✅ PRE SAVE HOOK
 bookingSchema.pre('save', async function (next) {
   try {
-    // 🔢 Generate booking number
     if (this.isNew) {
-      const count = await this.constructor.countDocuments();
       const year = new Date().getFullYear().toString().slice(-2);
-      this.bookingNumber = `BK-${year}-${(count + 1)
-        .toString()
-        .padStart(5, '0')}`;
+
+      // Find the last booking of the current year
+      const lastBooking = await this.constructor
+        .findOne({ bookingNumber: new RegExp(`^BK-${year}-`) })
+        .sort({ createdAt: -1 })
+        .exec();
+
+      let nextNumber = 1;
+      if (lastBooking && lastBooking.bookingNumber) {
+        // Extract the numeric part and increment
+        const parts = lastBooking.bookingNumber.split('-'); // ["BK", "26", "00002"]
+        nextNumber = parseInt(parts[2], 10) + 1;
+      }
+
+      this.bookingNumber = `BK-${year}-${nextNumber.toString().padStart(5, '0')}`;
     }
 
-    // ✅ Calculate subtotal from items if not provided
+    // ✅ Subtotal, VAT, totalAmount, remainingAmount calculation stays the same
     if (!this.subtotal || this.subtotal === 0) {
       this.subtotal = this.items.reduce(
         (sum, item) => sum + (item.totalPrice || 0),
@@ -215,20 +225,13 @@ bookingSchema.pre('save', async function (next) {
       );
     }
 
-    // ✅ Calculate VAT (rounded)
-    this.vatAmount = Math.round(
-      (this.subtotal * this.vatPercentage) / 100
-    );
-
-    // ✅ Calculate Grand Total
+    this.vatAmount = Math.round((this.subtotal * this.vatPercentage) / 100);
     this.totalAmount = Math.round(this.subtotal + this.vatAmount);
 
-    // ✅ Calculate Total Paid
     const totalPaid = this.payments
       .filter((p) => p.status === 'completed')
       .reduce((sum, payment) => sum + payment.amount, 0);
 
-    // ✅ Calculate Remaining
     this.remainingAmount = Math.max(0, this.totalAmount - totalPaid);
 
     next();

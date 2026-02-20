@@ -12,186 +12,227 @@ import {
 } from '@react-pdf/renderer';
 import { FiDownload, FiLoader, FiCheck } from 'react-icons/fi';
 
-// Styles for professional document layout
+// Define professional styles
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 10, fontFamily: 'Helvetica', lineHeight: 1.5, color: '#333' },
-  header: { marginBottom: 20, borderBottom: 2, borderBottomColor: '#283593', paddingBottom: 15 },
-  companyName: { fontSize: 20, color: '#283593', fontWeight: 'bold', textAlign: 'center', textTransform: 'uppercase', marginBottom: 4 },
-  companySub: { textAlign: 'center', color: '#555', fontSize: 9, marginBottom: 2 },
+  page: { padding: 40, fontSize: 9, fontFamily: 'Helvetica', color: '#1A1A1A', backgroundColor: '#FFFFFF' },
   
-  titleSection: { marginVertical: 15, textAlign: 'center', backgroundColor: '#F3F4F6', padding: 8, borderRadius: 2 },
-  title: { fontSize: 12, fontWeight: 'bold', color: '#111', letterSpacing: 1 },
+  // Header Section
+  headerContainer: { flexDirection: 'row', justifyContent: 'space-between', borderBottom: 2, borderBottomColor: '#1E3A8A', paddingBottom: 20, marginBottom: 20 },
+  companySection: { width: '60%' },
+  brandTitle: { fontSize: 22, fontWeight: 'bold', color: '#1E3A8A', letterSpacing: 0.5 },
+  companyDetail: { fontSize: 8, color: '#4B5563', marginTop: 2 },
   
-  infoGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 25, marginTop: 10 },
-  infoBox: { width: '48%' },
-  label: { fontWeight: 'bold', color: '#283593', marginBottom: 4, fontSize: 8, textTransform: 'uppercase' },
-  infoText: { fontSize: 10, marginBottom: 2 },
+  // Document Type Header
+  docLabelContainer: { textAlign: 'right', justifyContent: 'center' },
+  docLabel: { fontSize: 16, fontWeight: 'bold', color: '#1E3A8A', textTransform: 'uppercase' },
+  docNumber: { fontSize: 10, color: '#6B7280', marginTop: 4 },
+
+  // Summary Grid (Client & Schedule)
+  grid: { flexDirection: 'row', marginBottom: 20 },
+  col: { flex: 1, padding: 10, backgroundColor: '#F9FAFB', borderRadius: 4, marginRight: 8 },
+  colLast: { flex: 1, padding: 10, backgroundColor: '#F9FAFB', borderRadius: 4, marginRight: 0 },
+  sectionTitle: { fontSize: 8, fontWeight: 'bold', color: '#1E3A8A', textTransform: 'uppercase', marginBottom: 6, borderBottom: 1, borderBottomColor: '#E5E7EB', paddingBottom: 2 },
   
-  table: { display: 'table', width: 'auto', marginTop: 10, borderStyle: 'solid', borderWidth: 0.5, borderColor: '#EEE' },
-  tableRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#EEE', paddingVertical: 8, paddingHorizontal: 6, alignItems: 'center' },
-  tableHeader: { backgroundColor: '#283593', color: '#FFF' },
+  // Address Styling
+  addressCard: { padding: 12, backgroundColor: '#EFF6FF', borderRadius: 6, marginBottom: 20, borderLeft: 4, borderLeftColor: '#1E3A8A' },
+  addressRow: { flexDirection: 'row', justifyContent: 'space-between' },
+  addressBox: { width: '48%' },
+  addressLabel: { fontSize: 7, fontWeight: 'bold', color: '#3B82F6', textTransform: 'uppercase', marginBottom: 2 },
+  addressText: { fontSize: 9, lineHeight: 1.4 },
+
+  // Table Layout
+  table: { marginTop: 10 },
+  tableHeader: { flexDirection: 'row', backgroundColor: '#1E3A8A', color: '#FFFFFF', padding: 6, borderRadius: 2, fontWeight: 'bold' },
+  tableRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F3F4F6', padding: 6, alignItems: 'center' },
+  zebraRow: { backgroundColor: '#F9FAFB' },
   
-  col1: { width: '40%' },
-  col2: { width: '10%', textAlign: 'center' },
-  col3: { width: '15%', textAlign: 'center' },
-  col4: { width: '17%', textAlign: 'right' },
-  col5: { width: '18%', textAlign: 'right' },
+  // Table Columns
+  cellDesc: { width: '45%' },
+  cellQty: { width: '10%', textAlign: 'center' },
+  cellUnit: { width: '15%', textAlign: 'center' },
+  cellRate: { width: '15%', textAlign: 'right' },
+  cellTotal: { width: '15%', textAlign: 'right' },
+
+  // Financial Section
+  financialContainer: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 },
+  summaryBox: { width: '200pt' },
+  summaryRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
+  totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, paddingTop: 10, borderTopWidth: 2, borderTopColor: '#1E3A8A' },
+  totalLabel: { fontSize: 12, fontWeight: 'bold', color: '#1E3A8A' },
+  totalValue: { fontSize: 12, fontWeight: 'bold', color: '#1E3A8A' },
+
+  // Payment Status Ribbon
+  balanceBox: { marginTop: 10, padding: 8, borderRadius: 4, flexDirection: 'row', justifyContent: 'space-between' },
+  paidStatus: { backgroundColor: '#DCFCE7', color: '#166534' },
+  unpaidStatus: { backgroundColor: '#FFEDD5', color: '#9A3412' },
+
+  // Notes and History
+  historyTitle: { fontSize: 9, fontWeight: 'bold', color: '#1E3A8A', marginTop: 20, marginBottom: 8, textTransform: 'uppercase' },
+  historyRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingVertical: 4, fontSize: 8 },
   
-  summarySection: { marginTop: 20, flexDirection: 'column', alignItems: 'flex-end' },
-  summaryRow: { flexDirection: 'row', marginBottom: 4, width: '180pt', justifyContent: 'space-between', paddingBottom: 2 },
-  grandTotalRow: { marginTop: 5, paddingTop: 8, borderTopWidth: 1.5, borderTopColor: '#283593' },
-  grandTotalLabel: { fontSize: 11, fontWeight: 'bold', color: '#283593' },
-  grandTotalValue: { fontSize: 11, fontWeight: 'bold', color: '#283593' },
-  
-  notesSection: { marginTop: 30, padding: 12, backgroundColor: '#F9FAFB', borderRadius: 4, borderLeft: 3, borderLeftColor: '#283593' },
-  footer: { position: 'absolute', bottom: 30, left: 40, right: 40, borderTopWidth: 0.5, borderTopColor: '#EEE', paddingTop: 10, textAlign: 'center', fontSize: 8, color: '#999' },
+  footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 7, color: '#9CA3AF', borderTopWidth: 1, borderTopColor: '#F3F4F6', paddingTop: 10 },
 });
 
-// The actual PDF Document Template
+// The Professional PDF Component
 export const MyBookingDocument = ({ booking, companyInfo }) => {
-  const formatDate = (date) => {
-    try { return date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD'; } 
-    catch { return 'N/A'; }
-  };
+  const formatDate = (date) => date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD';
+  const formatDateTime = (date) => date ? new Date(date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'TBD';
+
+  const subtotal = booking.subtotal || 0;
+  const vat = booking.vatAmount || 0;
+  const grandTotal = (booking.totalAmount || (subtotal + vat));
+  const totalPaid = (booking.paymentHistory || []).reduce((sum, p) => sum + (p.amount || 0), 0);
+  const remainingBalance = Math.max(0, grandTotal - totalPaid);
 
   return (
-    <Document title={`Booking ${booking.bookingNumber}`}>
+    <Document title={`Booking_${booking.bookingNumber}`}>
       <Page size="A4" style={styles.page}>
-        {/* Header - Fixed the <br/> issue */}
-        <View style={styles.header}>
-          <Text style={styles.companyName}>{companyInfo.name}</Text>
-          <Text style={styles.companySub}>{companyInfo.address}</Text>
-          <Text style={styles.companySub}>Tel: {companyInfo.phone}  |  Email: {companyInfo.email}</Text>
-          {companyInfo.registration && <Text style={styles.companySub}>{companyInfo.registration}</Text>}
-        </View>
-
-        <View style={styles.titleSection}>
-          <Text style={styles.title}>OFFICIAL BOOKING CONFIRMATION: #{booking.bookingNumber || booking._id?.slice(-6).toUpperCase()}</Text>
-        </View>
-
-        <View style={styles.infoGrid}>
-          <View style={styles.infoBox}>
-            <Text style={styles.label}>Client Details</Text>
-            <Text style={[styles.infoText, { fontWeight: 'bold', fontSize: 11 }]}>{booking.clientName || 'Valued Client'}</Text>
-            <Text style={styles.infoText}>{booking.clientPhone}</Text>
-            <Text style={styles.infoText}>{booking.clientEmail}</Text>
+        
+        {/* Header Section */}
+        <View style={styles.headerContainer}>
+          <View style={styles.companySection}>
+            <Text style={styles.brandTitle}>{companyInfo.name}</Text>
+            <Text style={styles.companyDetail}>{companyInfo.address}</Text>
+            <Text style={styles.companyDetail}>Email: {companyInfo.email} | Web: {companyInfo.website}</Text>
+            <Text style={styles.companyDetail}>Phone: {companyInfo.phone}</Text>
           </View>
-          <View style={[styles.infoBox, { textAlign: 'right' }]}>
-            <Text style={styles.label}>Moving Schedule</Text>
-            <Text style={styles.infoText}>Date: {formatDate(booking.shiftingDate)}</Text>
-            <Text style={styles.infoText}>Time: {booking.shiftingTime || 'Flexible'}</Text>
-            <View style={{ marginTop: 5 }}>
-              <Text style={styles.label}>Route</Text>
-              <Text style={[styles.infoText, { fontSize: 8 }]}>From: {booking.pickupAddress}</Text>
-              <Text style={[styles.infoText, { fontSize: 8 }]}>To: {booking.deliveryAddress}</Text>
+          <View style={styles.docLabelContainer}>
+            <Text style={styles.docLabel}>Booking Confirmation</Text>
+            <Text style={styles.docNumber}>Ref: #{booking.bookingNumber || booking._id?.slice(-6).toUpperCase()}</Text>
+            <Text style={[styles.docNumber, { color: '#1E3A8A', fontWeight: 'bold' }]}>
+              Status: {(booking.status || 'Pending').toUpperCase()}
+            </Text>
+          </View>
+        </View>
+
+        {/* Client & Date Info Grid */}
+        <View style={styles.grid}>
+          <View style={styles.col}>
+            <Text style={styles.sectionTitle}>Client Details</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 10 }}>{booking.clientName}</Text>
+            <Text style={{ marginTop: 2 }}>{booking.clientPhone}</Text>
+            <Text>{booking.clientEmail}</Text>
+          </View>
+          <View style={styles.colLast}>
+            <Text style={styles.sectionTitle}>Move Schedule</Text>
+            <Text style={{ fontSize: 10 }}>Move Date: <Text style={{ fontWeight: 'bold' }}>{formatDate(booking.shiftingDate)}</Text></Text>
+            <Text style={{ marginTop: 2 }}>Move Time: {booking.shiftingTime || 'Flexible'}</Text>
+            <Text style={{ marginTop: 2 }}>Generated: {formatDate(new Date())}</Text>
+          </View>
+        </View>
+
+        {/* Professional Address Card */}
+        <View style={styles.addressCard}>
+          <View style={styles.addressRow}>
+            <View style={styles.addressBox}>
+              <Text style={styles.addressLabel}>Pickup Location</Text>
+              <Text style={styles.addressText}>{booking.pickupAddress}</Text>
+            </View>
+            <View style={{ width: 1, backgroundColor: '#BFDBFE', marginHorizontal: 15 }} />
+            <View style={styles.addressBox}>
+              <Text style={styles.addressLabel}>Delivery Location</Text>
+              <Text style={styles.addressText}>{booking.deliveryAddress}</Text>
             </View>
           </View>
         </View>
 
         {/* Inventory Table */}
         <View style={styles.table}>
-          <View style={[styles.tableRow, styles.tableHeader]}>
-            <Text style={[styles.col1, { fontWeight: 'bold' }]}>Item Description</Text>
-            <Text style={[styles.col2, { fontWeight: 'bold' }]}>Qty</Text>
-            <Text style={[styles.col3, { fontWeight: 'bold' }]}>Unit</Text>
-            <Text style={[styles.col4, { fontWeight: 'bold' }]}>Rate</Text>
-            <Text style={[styles.col5, { fontWeight: 'bold' }]}>Total</Text>
+          <View style={styles.tableHeader}>
+            <Text style={styles.cellDesc}>Item Description</Text>
+            <Text style={styles.cellQty}>Qty</Text>
+            <Text style={styles.cellUnit}>Unit</Text>
+            <Text style={styles.cellRate}>Rate</Text>
+            <Text style={styles.cellTotal}>Total</Text>
           </View>
-
           {(booking.items || []).map((item, i) => (
-            <View key={i} style={styles.tableRow} wrap={false}>
-              <Text style={styles.col1}>{item.name}</Text>
-              <Text style={styles.col2}>{item.quantity}</Text>
-              <Text style={styles.col3}>{item.unit}</Text>
-              <Text style={styles.col4}>£{(item.unitPrice || 0).toFixed(2)}</Text>
-              <Text style={styles.col5}>£{(item.totalPrice || 0).toFixed(2)}</Text>
+            <View key={i} style={[styles.tableRow, i % 2 === 1 ? styles.zebraRow : {}]}>
+              <Text style={styles.cellDesc}>{item.name}</Text>
+              <Text style={styles.cellQty}>{item.quantity}</Text>
+              <Text style={styles.cellUnit}>{item.unit || 'pc'}</Text>
+              <Text style={styles.cellRate}>£{(item.unitPrice || 0).toFixed(2)}</Text>
+              <Text style={styles.cellTotal}>£{(item.totalPrice || 0).toFixed(2)}</Text>
             </View>
           ))}
         </View>
 
         {/* Financial Summary */}
-        <View style={styles.summarySection} wrap={false}>
-          <View style={styles.summaryRow}>
-            <Text style={{ color: '#666' }}>Subtotal</Text>
-            <Text>£{(booking.subtotal || 0).toFixed(2)}</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={{ color: '#666' }}>VAT ({booking.vatPercentage || 0}%)</Text>
-            <Text>£{(booking.vatAmount || 0).toFixed(2)}</Text>
-          </View>
-          <View style={[styles.summaryRow, styles.grandTotalRow]}>
-            <Text style={styles.grandTotalLabel}>GRAND TOTAL</Text>
-            <Text style={styles.grandTotalValue}>£{(booking.totalAmount || 0).toFixed(2)}</Text>
-          </View>
-          {booking.advanceAmount > 0 && (
-            <View style={[styles.summaryRow, { marginTop: 4, color: '#10B981' }]}>
-              <Text style={{ fontSize: 9 }}>Deposit Paid</Text>
-              <Text style={{ fontSize: 9 }}>- £{(booking.advanceAmount).toFixed(2)}</Text>
+        <View style={styles.financialContainer}>
+          <View style={styles.summaryBox}>
+            <View style={styles.summaryRow}>
+              <Text style={{ color: '#6B7280' }}>Net Subtotal</Text>
+              <Text>£{(subtotal).toFixed(2)}</Text>
             </View>
-          )}
+            <View style={styles.summaryRow}>
+              <Text style={{ color: '#6B7280' }}>VAT ({booking.vatPercentage || 0}%)</Text>
+              <Text>£{(vat).toFixed(2)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>TOTAL AMOUNT</Text>
+              <Text style={styles.totalValue}>£{(grandTotal).toFixed(2)}</Text>
+            </View>
+
+            {/* Payment Summary Ribbon */}
+            <View style={[styles.balanceBox, remainingBalance === 0 ? styles.paidStatus : styles.unpaidStatus]}>
+              <Text style={{ fontWeight: 'bold' }}>Balance Outstanding:</Text>
+              <Text style={{ fontWeight: 'bold' }}>£{remainingBalance.toFixed(2)}</Text>
+            </View>
+            <Text style={{ fontSize: 7, color: '#6B7280', textAlign: 'right', marginTop: 4 }}>
+              Total Paid to Date: £{totalPaid.toFixed(2)}
+            </Text>
+          </View>
         </View>
 
-        {/* Notes */}
-        {(booking.notes || booking.specialInstructions) && (
-          <View style={styles.notesSection} wrap={false}>
-            <Text style={styles.label}>Notes & Special Instructions</Text>
-            <Text style={{ fontSize: 9, color: '#444', lineHeight: 1.4 }}>
-              {booking.notes || booking.specialInstructions}
-            </Text>
+        {/* Payment History Segment */}
+        {booking.paymentHistory?.length > 0 && (
+          <View wrap={false}>
+            <Text style={styles.historyTitle}>Payment History</Text>
+            {booking.paymentHistory.map((p, idx) => (
+              <View key={idx} style={styles.historyRow}>
+                <Text style={{ width: '30%' }}>{formatDateTime(p.date)}</Text>
+                <Text style={{ width: '25%', color: '#4B5563' }}>{p.method}</Text>
+                <Text style={{ width: '25%', fontStyle: 'italic' }}>{p.notes || 'Payment received'}</Text>
+                <Text style={{ width: '20%', textAlign: 'right', fontWeight: 'bold' }}>£{p.amount.toFixed(2)}</Text>
+              </View>
+            ))}
           </View>
         )}
 
-        <Text 
-          style={styles.footer} 
-          render={({ pageNumber, totalPages }) => (
-            `${companyInfo.name}  |  Generated on ${new Date().toLocaleDateString()}  |  Page ${pageNumber} of ${totalPages}`
-          )} 
-          fixed 
-        />
+        {/* Footer */}
+        <Text style={styles.footer} fixed render={({ pageNumber, totalPages }) => (
+          `Thank you for choosing ${companyInfo.name}. This is a computer generated document. Page ${pageNumber} of ${totalPages}`
+        )} />
       </Page>
     </Document>
   );
 };
 
-// Professional Download Button with State Handling
+// UI Button Component
 export const BookingDownloadButton = ({ booking, companyInfo }) => {
   const [isClient, setIsClient] = useState(false);
   const [ready, setReady] = useState(false);
 
-  // Ensures we only render the PDF logic on the client to avoid hydration errors
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  useEffect(() => setIsClient(true), []);
 
-  if (!isClient) return <div className="p-2 text-gray-400"><FiLoader className="animate-spin" /></div>;
+  if (!isClient) return <FiLoader className="animate-spin text-gray-400" />;
 
   return (
-    <div onMouseEnter={() => setReady(true)} onClick={() => setReady(true)}>
+    <div onMouseEnter={() => setReady(true)}>
       {!ready ? (
-        <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all flex items-center gap-2 cursor-pointer">
-          <FiDownload size={16} />
-          <span className="text-sm font-medium">Print PDF</span>
+        <button className="flex items-center gap-2 px-2 py-1 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-blue-700 transition-colors">
+          <FiDownload /> Generate Invoice
         </button>
       ) : (
         <PDFDownloadLink
           document={<MyBookingDocument booking={booking} companyInfo={companyInfo} />}
-          fileName={`Booking_${booking.bookingNumber || 'Draft'}.pdf`}
+          fileName={`Booking_${booking.bookingNumber}.pdf`}
         >
-          {({ loading, error }) => (
-            <div className={`p-2 rounded-lg transition-all flex items-center gap-2 cursor-pointer ${
-              loading ? 'text-amber-600' : 'text-emerald-600 hover:bg-emerald-50'
+          {({ loading }) => (
+            <div className={`flex items-center gap-2 px-2 py-1 text-sm font-bold rounded-lg transition-all ${
+              loading ? 'bg-gray-100 text-black cursor-wait' : 'bg-secondary text-white hover:bg-emerald-700 shadow-md'
             }`}>
-              {loading ? (
-                <>
-                  <FiLoader className="animate-spin" size={16} />
-                  <span className="text-sm font-medium">Preparing...</span>
-                </>
-              ) : (
-                <>
-                  <FiCheck size={16} />
-                  <span className="text-sm font-bold">Download PDF</span>
-                </>
-              )}
+              {loading ? <FiLoader className="animate-spin" /> : <FiCheck />}
+              {loading ? 'Processing...' : 'Download PDF'}
             </div>
           )}
         </PDFDownloadLink>
