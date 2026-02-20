@@ -1,4 +1,5 @@
 "use client";
+
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
@@ -6,6 +7,12 @@ import {
   FiSearch,
   FiFilter,
   FiPackage,
+  FiClock,
+  FiCheckCircle,
+  FiXCircle,
+  FiTruck,
+  FiDollarSign,
+  FiTrendingUp,
 } from "react-icons/fi";
 import BookingCard from "@/app/components/bookings/BookingCard";
 
@@ -15,6 +22,17 @@ export default function BookingsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expandedId, setExpandedId] = useState(null);
+  const [summary, setSummary] = useState({
+    total: 0,
+    pending: 0,
+    confirmed: 0,
+    in_progress: 0,
+    completed: 0,
+    cancelled: 0,
+    totalAmount: 0,
+    totalPaid: 0,
+    totalRemaining: 0,
+  });
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 10,
@@ -54,6 +72,14 @@ export default function BookingsPage() {
           total: data.pagination?.total || 0,
           pages: data.pagination?.pages || 0,
         });
+
+        // Calculate summary from all bookings (not just current page)
+        if (data.allBookingsSummary) {
+          setSummary(data.allBookingsSummary);
+        } else {
+          // Fallback: calculate from current page if summary not provided
+          calculateSummary(data.bookings);
+        }
       } else {
         console.warn("API response missing bookings:", data);
         setBookings([]);
@@ -66,9 +92,72 @@ export default function BookingsPage() {
     }
   }, []);
 
+  // Calculate summary from bookings
+  const calculateSummary = (bookingsList) => {
+    const summary = {
+      total: bookingsList.length,
+      pending: 0,
+      confirmed: 0,
+      in_progress: 0,
+      completed: 0,
+      cancelled: 0,
+      totalAmount: 0,
+      totalPaid: 0,
+      totalRemaining: 0,
+    };
+
+    bookingsList.forEach(booking => {
+      // Count by status
+      if (booking.status === 'pending') summary.pending++;
+      else if (booking.status === 'confirmed') summary.confirmed++;
+      else if (booking.status === 'in_progress') summary.in_progress++;
+      else if (booking.status === 'completed') summary.completed++;
+      else if (booking.status === 'cancelled') summary.cancelled++;
+
+      // Calculate payment totals
+      const grandTotal = (booking.subtotal || booking.totalAmount || 0) + (booking.vatAmount || 0);
+      const totalPaid = booking.paymentHistory 
+        ? booking.paymentHistory.reduce((sum, p) => sum + (p.amount || 0), 0)
+        : (booking.advanceAmount || 0);
+      const remaining = Math.max(0, grandTotal - totalPaid);
+
+      summary.totalAmount += grandTotal;
+      summary.totalPaid += totalPaid;
+      summary.totalRemaining += remaining;
+    });
+
+    setSummary(summary);
+  };
+
+  // Fetch all bookings for summary on initial load
+  const fetchSummaryData = useCallback(async () => {
+    try {
+      const response = await fetch("/api/bookings?limit=1000&summary=true", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(`API returned ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.bookings) {
+        calculateSummary(data.bookings);
+      }
+    } catch (error) {
+      console.error("Error fetching summary data:", error);
+    }
+  }, []);
+
   // Initial fetch on component mount
   useEffect(() => {
     fetchBookings(1, "all", "");
+    fetchSummaryData();
   }, []);
 
   // Fetch on search term change (with debounce) and status filter change
@@ -80,7 +169,6 @@ export default function BookingsPage() {
     return () => clearTimeout(timer);
   }, [searchTerm, statusFilter, fetchBookings]);
 
-
   const handleDelete = async (id) => {
     if (!confirm("Are you sure you want to delete this booking?")) return;
     
@@ -91,13 +179,21 @@ export default function BookingsPage() {
       
       if (response.ok) {
         fetchBookings(pagination.page, statusFilter, searchTerm);
+        fetchSummaryData(); // Refresh summary after delete
       }
     } catch (error) {
       console.error("Error deleting booking:", error);
     }
   };
 
-
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount || 0);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -114,6 +210,129 @@ export default function BookingsPage() {
           <FiPlus />
           New Booking
         </Link>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Total Bookings */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Total Bookings</p>
+              <p className="text-2xl font-bold text-gray-900">{summary.total}</p>
+            </div>
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FiPackage className="text-blue-600" size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Pending */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Pending</p>
+              <p className="text-2xl font-bold text-yellow-600">{summary.pending}</p>
+            </div>
+            <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+              <FiClock className="text-yellow-600" size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Confirmed */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Confirmed</p>
+              <p className="text-2xl font-bold text-blue-600">{summary.confirmed}</p>
+            </div>
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <FiCheckCircle className="text-blue-600" size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* In Progress */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">In Progress</p>
+              <p className="text-2xl font-bold text-indigo-600">{summary.in_progress}</p>
+            </div>
+            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <FiTruck className="text-indigo-600" size={20} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Second Row - More Status and Payment Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Completed */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Completed</p>
+              <p className="text-2xl font-bold text-green-600">{summary.completed}</p>
+            </div>
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <FiCheckCircle className="text-green-600" size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Cancelled */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Cancelled</p>
+              <p className="text-2xl font-bold text-red-600">{summary.cancelled}</p>
+            </div>
+            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+              <FiXCircle className="text-red-600" size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Amount */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Total Amount</p>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(summary.totalAmount)}</p>
+            </div>
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <FiTrendingUp className="text-purple-600" size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Paid */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Total Paid</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(summary.totalPaid)}</p>
+            </div>
+            <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+              <FiDollarSign className="text-green-600" size={20} />
+            </div>
+          </div>
+        </div>
+
+        {/* Total Remaining */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-500 mb-1">Remaining</p>
+              <p className="text-2xl font-bold text-orange-600">{formatCurrency(summary.totalRemaining)}</p>
+            </div>
+            <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+              <FiDollarSign className="text-orange-600" size={20} />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
@@ -171,7 +390,10 @@ export default function BookingsPage() {
             <BookingCard
               key={booking._id}
               booking={booking}
-              onRefresh={() => fetchBookings(pagination.page, statusFilter, searchTerm)}
+              onRefresh={() => {
+                fetchBookings(pagination.page, statusFilter, searchTerm);
+                fetchSummaryData(); // Refresh summary after any update
+              }}
               expandedBookingId={expandedId}
               setExpandedBookingId={setExpandedId}
             />

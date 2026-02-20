@@ -187,30 +187,42 @@ const quoteRef = useRef(null);
 
   // Calculate totals
   useEffect(() => {
-    const itemsTotal = formData.items.reduce(
-      (sum, item) => sum + (item.quantity * item.unitPrice),
-      0
-    );
-    
-    // Calculate VAT
-    const vatAmount = itemsTotal * (formData.vatPercentage / 100);
-    
-    const remainingAmount = Math.max(0, (itemsTotal+vatAmount) - (formData.advanceAmount || 0));
+  const itemsTotal = formData.items.reduce(
+    (sum, item) => sum + (item.quantity * item.unitPrice),
+    0
+  );
 
-    setCalculations({
-      itemsTotal,
-      advanceAmount: formData.advanceAmount || 0,
-      remainingAmount,
-      vatAmount,
-    });
+  // ✅ Round items total first
+  const roundedItemsTotal = Math.round(itemsTotal);
 
-    setFormData(prev => ({
-      ...prev,
-      totalAmount: itemsTotal,
-      remainingAmount,
-      vatAmount,
-    }));
-  }, [formData.items, formData.advanceAmount, formData.vatPercentage]);
+  // ✅ Calculate VAT and round it
+  const vatAmount = Math.round(
+    roundedItemsTotal * (formData.vatPercentage / 100)
+  );
+
+  // ✅ Calculate final total properly
+  const grandTotal = roundedItemsTotal + vatAmount;
+
+  const remainingAmount = Math.max(
+    0,
+    grandTotal - (formData.advanceAmount || 0)
+  );
+
+  setCalculations({
+    itemsTotal: roundedItemsTotal,
+    advanceAmount: formData.advanceAmount || 0,
+    remainingAmount,
+    vatAmount,
+  });
+
+  setFormData(prev => ({
+    ...prev,
+    totalAmount: grandTotal,
+    vatAmount,
+    remainingAmount,
+  }));
+}, [formData.items, formData.advanceAmount, formData.vatPercentage]);
+
 
   const fetchClients = async () => {
     try {
@@ -391,61 +403,58 @@ const handleQuoteSelect = (selectedQuote) => {
     return true;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (!validateForm()) return;
 
-    setLoading(true);
-    try {
-      const submitData = {
-        ...formData,
-        shiftingDate: new Date(formData.shiftingDate).toISOString(),
-        advanceAmount: parseFloat(formData.advanceAmount) || 0,
-        totalAmount: formData.totalAmount || 0,
-        vatPercentage: parseFloat(formData.vatPercentage) || 15,
-        vatAmount: formData.vatAmount || 0,
-      };
-
-      console.log("📝 Submitting booking data:", submitData);
-
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(submitData),
-      });
-
-      console.log("Response status:", response.status, response.statusText);
-
-      // Check if response is JSON or HTML
-      const contentType = response.headers.get("content-type");
-      console.log("Response content-type:", contentType);
-
-      let data;
-      try {
-        data = await response.json();
-      } catch (parseError) {
-        // If JSON parsing fails, get text to see what's being returned
-        const text = await response.text();
-        console.error("Failed to parse response as JSON. Raw response:", text.substring(0, 500));
-        throw new Error(`Server returned invalid response: ${response.status} ${response.statusText}`);
-      }
-
-      if (!response.ok) {
-        const errorMsg = data.validationErrors 
-          ? data.validationErrors.join(", ")
-          : data.error || "Failed to create booking";
-        throw new Error(errorMsg);
-      }
-
-      alert("Booking created successfully!");
-      router.push("/admin/bookings");
-    } catch (error) {
-      console.error("❌ Error creating booking:", error);
-      alert(`Error: ${error.message}`);
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  try {
+    // 1. Prepare the initial payment if there's an advance
+    let paymentRecord = [];
+    if (parseFloat(formData.advanceAmount) > 0 && formData.paymentMethod) {
+      paymentRecord = [{
+        amount: parseFloat(formData.advanceAmount),
+        paymentMethod: formData.paymentMethod,
+        status: 'completed',
+        paymentDate: new Date().toISOString(),
+      }];
     }
-  };
+
+    // 2. Build the full payload
+    const submitData = {
+      ...formData,
+      shiftingDate: new Date(formData.shiftingDate).toISOString(),
+      advanceAmount: parseFloat(formData.advanceAmount) || 0,
+      vatPercentage: parseFloat(formData.vatPercentage) || 15,
+      // Pass the payment directly here so the single route handles it
+      payments: paymentRecord, 
+    };
+
+    // Note: We don't necessarily need to send totalAmount/vatAmount 
+    // because your Mongoose pre-save hook recalculates them anyway!
+    
+    const response = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(submitData),
+    });
+
+    // ... your existing response & JSON parsing logic ...
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to create booking");
+    }
+
+    alert("Booking created successfully!");
+    router.push("/admin/bookings");
+  } catch (error) {
+    console.error("❌ Error:", error);
+    alert(`Error: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const toggleSection = (section) => {
     setExpandedSections({

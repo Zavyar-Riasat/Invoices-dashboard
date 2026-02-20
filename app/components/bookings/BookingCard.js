@@ -31,6 +31,7 @@ import {
 } from "react-icons/fi";
 import { format } from "date-fns";
 
+
 // Dynamically import PDF components
 const BookingDownloadButton = dynamic(
   () =>
@@ -59,7 +60,8 @@ const BookingCard = ({
   const [paymentNotes, setPaymentNotes] = useState("");
   const [paymentDate, setPaymentDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [processingPayment, setProcessingPayment] = useState(false);
-
+// Add this near the top of the component, after the props
+console.log("BookingCard rendered with booking ID:", booking?._id);
   // Validate booking data
   if (!booking || !booking._id) {
     return (
@@ -299,37 +301,64 @@ const remainingBalance = roundToTwo(
   };
 
 const handleRecordPayment = async () => {
+  // 1. Initial Validation
   const amount = parseFloat(paymentAmount);
-
-  if (!amount || amount <= 0) {
-    setError("Please enter a valid payment amount");
+  
+  if (!paymentAmount || isNaN(amount) || amount <= 0) {
+    alert("Please enter a valid payment amount.");
     return;
   }
 
-  // 🔥 Small tolerance added to avoid floating precision issues
-  if (amount > remainingBalance + 0.001) {
-    setError(
-      `Payment amount cannot exceed remaining balance of ${formatCurrency(remainingBalance)}`
-    );
+  if (amount > remainingBalance + 0.01) {
+    alert(`Payment cannot exceed the remaining balance of ${formatCurrency(remainingBalance)}`);
     return;
   }
+
+  setProcessingPayment(true);
 
   try {
-    setError(null);
-
-    await axios.post("/api/payments", {
-      bookingId: booking._id,
-      amount: Math.round(amount * 100) / 100, // round to 2 decimals
+    // 2. API Call
+    const response = await fetch(`/api/bookings/${booking._id}/payments`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount: amount,
+        paymentDate: paymentDate,
+        paymentMethod: paymentMethod,
+        notes: paymentNotes,
+      }),
     });
 
-    setPaymentAmount("");
-    fetchBookingDetails();
+    const result = await response.json();
 
-  } catch (err) {
-    setError("Failed to record payment");
+    if (!response.ok) {
+      throw new Error(result.error || result.message || "Failed to record payment");
+    }
+
+    // 3. Success Actions
+    alert("Payment recorded successfully!");
+    
+    // Reset Modal Fields
+    setPaymentAmount("");
+    setPaymentNotes("");
+    setPaymentDate(format(new Date(), "yyyy-MM-dd"));
+    setPaymentMethod("cash");
+    setShowPaymentModal(false);
+
+    // 4. Refresh the data
+    if (typeof onRefresh === "function") {
+      onRefresh();
+    }
+
+  } catch (error) {
+    console.error("Payment Error:", error);
+    alert(error.message || "An error occurred while processing the payment.");
+  } finally {
+    setProcessingPayment(false);
   }
 };
-
 
   return (
     <>
@@ -843,30 +872,27 @@ const handleRecordPayment = async () => {
                     $
                   </span>
                   <input
-                    type="number"
-                    min="0.01"
-                    step="0.01"
-                    // max={remainingBalance.toFixed(2)}
-
-                    value={paymentAmount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Allow any positive number up to remainingBalance
-                      if (value === "") {
-  setPaymentAmount(value);
-  return;
-}
-
-const roundedValue = Math.round(parseFloat(value) * 100) / 100;
-
-if (roundedValue <= remainingBalance) {
-  setPaymentAmount(value);
-}
-
-                    }}
-                    className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                    placeholder={`Max: ${formatCurrency(remainingBalance).replace('$', '')}`}
-                  />
+  type="number"
+  min="0.01"
+  step="0.01"
+  value={paymentAmount}
+  onChange={(e) => {
+    const value = e.target.value;
+    if (value === "") {
+      setPaymentAmount(value);
+      return;
+    }
+    
+    const roundedValue = Math.round(parseFloat(value) * 100) / 100;
+    
+    // Check if the value is a valid number and not exceeding remaining balance
+    if (!isNaN(roundedValue) && roundedValue <= remainingBalance) {
+      setPaymentAmount(value);
+    }
+  }}
+  className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+  placeholder={`Max: ${formatCurrency(remainingBalance).replace('$', '')}`}
+/>
                 </div>
                 <p className="text-xs text-gray-500 mt-1">
                   Maximum: {formatCurrency(remainingBalance)}
