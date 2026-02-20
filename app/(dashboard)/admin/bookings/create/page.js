@@ -411,10 +411,15 @@ const handleSubmit = async (e) => {
   try {
     // 1. Prepare the initial payment if there's an advance
     let paymentRecord = [];
-    if (parseFloat(formData.advanceAmount) > 0 && formData.paymentMethod) {
+    if (parseFloat(formData.advanceAmount) > 0) {
+      // Get the payment method from formData
+      const paymentMethod = formData.payments && formData.payments.length > 0 
+        ? formData.payments[0].paymentMethod 
+        : 'cash';
+      
       paymentRecord = [{
         amount: parseFloat(formData.advanceAmount),
-        paymentMethod: formData.paymentMethod,
+        paymentMethod: paymentMethod,
         status: 'completed',
         paymentDate: new Date().toISOString(),
       }];
@@ -426,23 +431,25 @@ const handleSubmit = async (e) => {
       shiftingDate: new Date(formData.shiftingDate).toISOString(),
       advanceAmount: parseFloat(formData.advanceAmount) || 0,
       vatPercentage: parseFloat(formData.vatPercentage) || 15,
-      // Pass the payment directly here so the single route handles it
-      payments: paymentRecord, 
+      payments: paymentRecord,
     };
 
-    // Note: We don't necessarily need to send totalAmount/vatAmount 
-    // because your Mongoose pre-save hook recalculates them anyway!
-    
+    console.log('Submitting booking data:', submitData);
+
     const response = await fetch("/api/bookings", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(submitData),
     });
 
-    // ... your existing response & JSON parsing logic ...
     const data = await response.json();
+    console.log('Response data:', data);
 
     if (!response.ok) {
+      if (data.validationErrors) {
+        const errorMessages = data.validationErrors.map(err => `${err.field}: ${err.message}`).join('\n');
+        throw new Error(`Validation failed:\n${errorMessages}`);
+      }
       throw new Error(data.error || "Failed to create booking");
     }
 
@@ -983,43 +990,53 @@ const handleSubmit = async (e) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Advance Amount
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      max={calculations.itemsTotal + calculations.vatAmount}
-                      value={formData.advanceAmount || 0}
-                      onChange={(e) => {
-                        let value = e.target.value ? parseFloat(e.target.value) : 0;
-                        const totalAmount = calculations.itemsTotal + calculations.vatAmount;
-                        
-                        // Cap the value if it exceeds total amount
-                        if (value > totalAmount) {
-                          value = totalAmount;
-                        }
-                        
-                        console.log("Advance amount changed to:", value, "Max allowed:", totalAmount);
-                        setFormData({
-                          ...formData,
-                          advanceAmount: value
-                        });
-                      }}
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                    />
-                  </div>
-                  {formData.advanceAmount > calculations.itemsTotal + calculations.vatAmount && (
-                    <p className="text-xs text-red-600 mt-1">
-                      ⚠️ Advance amount cannot exceed total amount (${(calculations.itemsTotal + calculations.vatAmount).toFixed(2)})
-                    </p>
-                  )}
-                </div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Advance Amount
+  </label>
+  <div className="relative">
+    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+      $
+    </span>
+    <input
+      type="number"
+      min="0"
+      step="1" // Change from "0.01" to "1" to force whole numbers
+      max={calculations.itemsTotal + calculations.vatAmount}
+      value={formData.advanceAmount || 0}
+      onChange={(e) => {
+        // Parse as integer instead of float
+        let value = e.target.value ? parseInt(e.target.value, 10) : 0;
+        const totalAmount = calculations.itemsTotal + calculations.vatAmount;
+        
+        // Cap the value if it exceeds total amount
+        if (value > totalAmount) {
+          value = totalAmount;
+        }
+        
+        // Ensure it's a whole number
+        value = Math.floor(value);
+        
+        console.log("Advance amount changed to:", value, "Max allowed:", totalAmount);
+        setFormData({
+          ...formData,
+          advanceAmount: value
+        });
+      }}
+      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+      onKeyDown={(e) => {
+        // Prevent entering decimal points
+        if (e.key === '.' || e.key === ',') {
+          e.preventDefault();
+        }
+      }}
+    />
+  </div>
+  {formData.advanceAmount > calculations.itemsTotal + calculations.vatAmount && (
+    <p className="text-xs text-red-600 mt-1">
+      ⚠️ Advance amount cannot exceed total amount (${(calculations.itemsTotal + calculations.vatAmount).toFixed(2)})
+    </p>
+  )}
+</div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1038,27 +1055,27 @@ const handleSubmit = async (e) => {
                   Payment Method (Optional)
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
-                  onChange={(e) => {
-                    if (e.target.value) {
-                      setFormData({
-                        ...formData,
-                        payments: [{
-                          amount: parseFloat(formData.advanceAmount) || 0,
-                          paymentMethod: e.target.value,
-                          status: 'completed',
-                        }]
-                      });
-                    }
-                  }}
-                >
-                  <option value="">Select payment method</option>
-                  <option value="cash">Cash</option>
-                  <option value="credit_card">Credit Card</option>
-                  <option value="debit_card">Debit Card</option>
-                  <option value="bank_transfer">Bank Transfer</option>
-                  <option value="cheque">Cheque</option>
-                </select>
+  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none payment-method"
+  onChange={(e) => {
+    if (e.target.value) {
+      setFormData({
+        ...formData,
+        payments: [{
+          amount: parseFloat(formData.advanceAmount) || 0,
+          paymentMethod: e.target.value,
+          status: 'completed',
+        }]
+      });
+    }
+  }}
+>
+  <option value="">Select payment method</option>
+  <option value="cash">Cash</option>
+  <option value="credit_card">Credit Card</option>
+  <option value="debit_card">Debit Card</option>
+  <option value="bank_transfer">Bank Transfer</option>
+  <option value="cheque">Cheque</option>
+</select>
               </div>
             </div>
           )}

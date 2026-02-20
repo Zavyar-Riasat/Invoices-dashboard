@@ -112,6 +112,44 @@ export async function POST(request) {
     // Calculate remaining (after advance payment)
     const remainingAmount = Math.max(0, totalAmount - advanceAmount);
 
+    // Prepare payment history if there's an advance payment
+    const paymentHistory = [];
+    const payments = [];
+
+    // If there's an advance amount and payment method, create a payment record
+    if (advanceAmount > 0 && body.payments && body.payments.length > 0) {
+      const payment = body.payments[0];
+      
+      // Map payment method to allowed values for paymentHistory
+      let paymentHistoryMethod = 'cash'; // default
+      if (payment.paymentMethod === 'credit_card' || payment.paymentMethod === 'debit_card') {
+        paymentHistoryMethod = 'card';
+      } else if (payment.paymentMethod === 'bank_transfer') {
+        paymentHistoryMethod = 'bank_transfer';
+      } else if (payment.paymentMethod === 'cheque') {
+        paymentHistoryMethod = 'check';
+      } else if (payment.paymentMethod === 'cash') {
+        paymentHistoryMethod = 'cash';
+      }
+      
+      // Add to paymentHistory
+      paymentHistory.push({
+        amount: advanceAmount,
+        method: paymentHistoryMethod,
+        date: new Date(),
+        notes: 'Advance payment at booking creation',
+      });
+
+      // Add to payments array (this one can keep the original method as it has a different enum)
+      payments.push({
+        amount: advanceAmount,
+        paymentDate: new Date(),
+        paymentMethod: payment.paymentMethod,
+        notes: 'Advance payment at booking creation',
+        status: 'completed'
+      });
+    }
+
     // Prepare booking data
     const bookingData = {
       client: body.client,
@@ -136,7 +174,8 @@ export async function POST(request) {
       totalAmount,
       advanceAmount,
       remainingAmount,
-      payments: body.payments || [],
+      paymentHistory, // Add payment history with mapped method
+      payments, // Add payments array
       assignedStaff: body.assignedStaff || [],
       notes: body.notes || '',
       specialInstructions: body.specialInstructions || '',
@@ -154,6 +193,7 @@ export async function POST(request) {
       });
     }
 
+    console.log('Booking data being saved:', JSON.stringify(bookingData, null, 2));
     const booking = await Booking.create(bookingData);
 
     return NextResponse.json({
@@ -166,7 +206,12 @@ export async function POST(request) {
     console.error('Error creating booking:', error);
     
     if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
+      const errors = Object.values(error.errors).map(err => ({
+        field: err.path,
+        message: err.message,
+        value: err.value
+      }));
+      console.error('Validation errors:', errors);
       return NextResponse.json({
         success: false,
         error: 'Validation failed',
