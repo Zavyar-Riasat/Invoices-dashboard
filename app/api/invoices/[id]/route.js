@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/app/lib/mongodb';
 import Invoice from '@/app/lib/models/Invoice';
-
+import client from '@/app/lib/models/Client';
+import booking from '@/app/lib/models/Booking';
 export async function GET(request, { params }) {
   try {
     await dbConnect();

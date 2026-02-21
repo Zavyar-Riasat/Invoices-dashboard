@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
-
+import '@/app/lib/models/Client'; 
+import '@/app/lib/models/Booking';
 const MONGODB_URI = process.env.MONGODB_URI;
 
 if (!MONGODB_URI) {

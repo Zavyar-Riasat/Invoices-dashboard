@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/app/lib/mongodb';
 import Invoice from '@/app/lib/models/Invoice';
 import { generateInvoicePDF } from '@/app/lib/pdf/generateInvoicePDF';
-
+import Client from '@/app/lib/models/Client'; // Add this
+import Booking from '@/app/lib/models/Booking';
 export async function GET(request, { params }) {
   try {
     await dbConnect();
