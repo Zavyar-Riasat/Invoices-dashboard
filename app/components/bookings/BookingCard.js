@@ -77,6 +77,28 @@ const BookingCard = ({
     );
   }
 
+  const handleCreateInvoice = async (bookingId) => {
+  try {
+    const response = await fetch("/api/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ bookingId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to create invoice");
+    }
+
+    alert("Invoice created successfully!");
+    if (onRefresh) onRefresh();
+  } catch (error) {
+    console.error("Error creating invoice:", error);
+    alert(error.message);
+  }
+};
+
   const formatDate = (date) => {
     try {
       if (!date) return "Not scheduled";
@@ -829,123 +851,137 @@ const BookingCard = ({
           </div>
         )}
 
-        {/* Actions - Always visible */}
         <div className="p-2 -pb-2 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
-          <div className="flex flex-wrap gap-1.5 justify-end">
-            {booking.status !== "completed" && (
-  <Link
-    href={`/admin/bookings/edit/${booking._id}`}
-    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-    title="Edit Booking"
-  >
-    <FiEdit2 size={16} />
-  </Link>
-)}
+  <div className="flex flex-wrap gap-1.5 justify-end">
+    {/* Edit Button - Only show if not completed */}
+    {booking.status !== "completed" && (
+      <Link
+        href={`/admin/bookings/edit/${booking._id}`}
+        className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+        title="Edit Booking"
+      >
+        <FiEdit2 size={16} />
+      </Link>
+    )}
 
-            <div className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
-              <BookingDownloadButton
-                booking={booking}
-                companyInfo={{
-                  name: "Pack & Attack Removal Ltd",
-                  address:
-                    "Based in London — proudly serving all of Greater London, with nationwide moves available.",
-                  phone: "07577 441 654 / 07775 144 475",
-                  email: "info@Packattackremovalltd.com",
-                  website: "www.packattackremovals.com",
-                }}
-              />
-            </div>
+    {/* PDF Download Button */}
+    <div className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
+      <BookingDownloadButton
+        booking={booking}
+        companyInfo={{
+          name: "Pack & Attack Removal Ltd",
+          address:
+            "Based in London — proudly serving all of Greater London, with nationwide moves available.",
+          phone: "07577 441 654 / 07775 144 475",
+          email: "info@Packattackremovalltd.com",
+          website: "www.packattackremovals.com",
+        }}
+      />
+    </div>
 
-            <button
-              onClick={handleSendBooking}
-              disabled={sending || loading}
-              className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 cursor-pointer rounded-lg transition disabled:opacity-50"
-              title="Send to client"
-            >
-              {sending ? (
-                <FiLoader className="animate-spin" size={16} />
-              ) : (
-                <FiSend size={16} />
-              )}
-            </button>
+    {/* Send Email Button */}
+    <button
+      onClick={handleSendBooking}
+      disabled={sending || loading}
+      className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 cursor-pointer rounded-lg transition disabled:opacity-50"
+      title="Send to client"
+    >
+      {sending ? (
+        <FiLoader className="animate-spin" size={16} />
+      ) : (
+        <FiSend size={16} />
+      )}
+    </button>
 
-            {(booking.status === "pending" ||
-              booking.status === "cancelled" ||
-              booking.status === "completed" ||
-              booking.status === "confirmed" ||
-              booking.status === "in_progress") && (
-              <button
-                onClick={handleDeleteBooking}
-                disabled={loading}
-                className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
-                title="Delete Booking"
-              >
-                <FiTrash2 size={16} />
-              </button>
-            )}
-          </div>
+    {/* Invoice Button - Show only when completed and invoice not generated */}
+    {booking.status === "completed" && !booking.invoiceGenerated && (
+      <button
+        onClick={() => handleCreateInvoice(booking._id)}
+        className="p-2 text-primary cursor-pointer hover:text-purple-600 hover:bg-purple-50 rounded-lg transition"
+        title="Generate Invoice"
+      >
+        <FiFileText size={16} />
+      </button>
+    )}
 
-          {/* Status Update Buttons */}
-          {booking.status !== "cancelled" && booking.status !== "completed" && (
-            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-gray-200">
-              {booking.status === "pending" && (
-                <>
-                  <button
-                    onClick={() => handleUpdateStatus("in_progress")}
-                    disabled={loading}
-                    className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-white bg-secondary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <FiCheckCircle size={14} />
-                    Confirm
-                  </button>
-                  <button
-                    onClick={() => handleUpdateStatus("cancelled")}
-                    disabled={loading}
-                    className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <FiXCircle size={14} />
-                    Decline
-                  </button>
-                </>
-              )}
+    {/* Delete Button */}
+    {(booking.status === "pending" ||
+      booking.status === "cancelled" ||
+      booking.status === "completed" ||
+      booking.status === "confirmed" ||
+      booking.status === "in_progress") && (
+      <button
+        onClick={handleDeleteBooking}
+        disabled={loading}
+        className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition disabled:opacity-50"
+        title="Delete Booking"
+      >
+        <FiTrash2 size={16} />
+      </button>
+    )}
+  </div>
 
-              {booking.status === "confirmed" && (
-                <button
-                  onClick={() => handleUpdateStatus("cancelled")}
-                  disabled={loading}
-                  className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  <FiXCircle size={14} />
-                  Decline
-                </button>
-              )}
+  {/* Status Update Buttons */}
+  {booking.status !== "cancelled" && booking.status !== "completed" && (
+    <div className="flex flex-wrap gap-2 mt-3 pt-3 border-gray-200">
+      {booking.status === "pending" && (
+        <>
+          <button
+            onClick={() => handleUpdateStatus("in_progress")}
+            disabled={loading}
+            className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-white bg-secondary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+          >
+            <FiCheckCircle size={14} />
+            Confirm
+          </button>
+          <button
+            onClick={() => handleUpdateStatus("cancelled")}
+            disabled={loading}
+            className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
+          >
+            <FiXCircle size={14} />
+            Decline
+          </button>
+        </>
+      )}
 
-              {booking.status === "in_progress" && (
-                <button
-                  onClick={() => handleUpdateStatus("completed")}
-                  disabled={loading}
-                  className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-secondary hover:from-green-700 hover:to-green-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  <FiCheckCircle size={14} />
-                  Complete
-                </button>
-              )}
+      {booking.status === "confirmed" && (
+        <button
+          onClick={() => handleUpdateStatus("cancelled")}
+          disabled={loading}
+          className="flex-1 px-3 py-2 text-xs cursor-pointer font-medium text-gray-700 bg-white hover:bg-red-50 hover:text-red-600 rounded-lg transition border border-gray-300 hover:border-red-300 flex items-center justify-center gap-1.5 disabled:opacity-50"
+        >
+          <FiXCircle size={14} />
+          Decline
+        </button>
+      )}
 
-              {/* Record Payment Button */}
-              {["confirmed", "in_progress"].includes(booking.status) &&
-                remainingBalance > 0 && (
-                  <button
-                    onClick={() => setShowPaymentModal(true)}
-                    disabled={loading}
-                    className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-primary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
-                  >
-                    <FiPlus size={14} />
-                    Record Payment
-                  </button>
-                )}
-            </div>
-          )}
-        </div>
+      {booking.status === "in_progress" && (
+        <button
+          onClick={() => handleUpdateStatus("completed")}
+          disabled={loading}
+          className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-secondary hover:from-green-700 hover:to-green-800 rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+        >
+          <FiCheckCircle size={14} />
+          Complete
+        </button>
+      )}
+
+      {/* Record Payment Button - Only for confirmed/in_progress with remaining balance */}
+      {["confirmed", "in_progress"].includes(booking.status) &&
+        remainingBalance > 0 && (
+          <button
+            onClick={() => setShowPaymentModal(true)}
+            disabled={loading}
+            className="flex-1 px-3 py-2 cursor-pointer text-xs font-medium text-white bg-primary rounded-lg transition flex items-center justify-center gap-1.5 disabled:opacity-50"
+          >
+            <FiPlus size={14} />
+            Record Payment
+          </button>
+        )}
+    </div>
+  )}
+</div>
       </div>
 
       {/* Payment Modal */}
