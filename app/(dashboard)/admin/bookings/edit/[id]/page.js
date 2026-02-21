@@ -43,6 +43,15 @@ export default function EditBookingPage() {
   const [quotes, setQuotes] = useState([]);
   const [filteredQuotes, setFilteredQuotes] = useState([]);
   
+  // Extra charges state
+  const [showExtraChargeForm, setShowExtraChargeForm] = useState(false);
+  const [newExtraCharge, setNewExtraCharge] = useState({
+    description: '',
+    amount: '',
+    type: 'other',
+    notes: '',
+  });
+  
   const [searchClient, setSearchClient] = useState("");
   const [searchItem, setSearchItem] = useState("");
   const [searchQuote, setSearchQuote] = useState("");
@@ -59,6 +68,7 @@ export default function EditBookingPage() {
     client: true,
     shifting: true,
     items: true,
+    extraCharges: true,
     payment: true,
     settings: true,
     notes: true,
@@ -76,6 +86,7 @@ export default function EditBookingPage() {
     pickupAddress: "",
     deliveryAddress: "",
     items: [],
+    extraCharges: [], // Add extra charges array
     totalAmount: 0,
     advanceAmount: 0,
     remainingAmount: 0,
@@ -92,6 +103,8 @@ export default function EditBookingPage() {
   // Calculations
   const [calculations, setCalculations] = useState({
     itemsTotal: 0,
+    extraChargesTotal: 0,
+    subtotal: 0,
     advanceAmount: 0,
     remainingAmount: 0,
     vatAmount: 0,
@@ -189,16 +202,34 @@ export default function EditBookingPage() {
     setFilteredQuotes(filtered);
   }, [searchQuote, quotes]);
 
-  // Calculate totals
+  // Calculate totals - UPDATED to include extra charges
   useEffect(() => {
+    // Calculate items total
     const itemsTotal = formData.items.reduce(
       (sum, item) => sum + (item.quantity * item.unitPrice),
       0
     );
 
+    // Calculate extra charges total
+    const extraChargesTotal = (formData.extraCharges || []).reduce(
+      (sum, charge) => sum + (charge.amount || 0),
+      0
+    );
+
+    // Round items total
     const roundedItemsTotal = Math.round(itemsTotal);
-    const vatAmount = Math.round(roundedItemsTotal * (formData.vatPercentage / 100));
-    const grandTotal = roundedItemsTotal + vatAmount;
+    
+    // Round extra charges total
+    const roundedExtraChargesTotal = Math.round(extraChargesTotal);
+    
+    // Calculate subtotal (items + extra charges)
+    const subtotal = roundedItemsTotal + roundedExtraChargesTotal;
+
+    // Calculate VAT on the FULL subtotal
+    const vatAmount = Math.round(subtotal * (formData.vatPercentage / 100));
+
+    // Calculate grand total
+    const grandTotal = subtotal + vatAmount;
     
     // Calculate total paid from payment history
     const totalPaid = formData.paymentHistory?.reduce((sum, p) => sum + p.amount, 0) || formData.advanceAmount || 0;
@@ -206,6 +237,8 @@ export default function EditBookingPage() {
 
     setCalculations({
       itemsTotal: roundedItemsTotal,
+      extraChargesTotal: roundedExtraChargesTotal,
+      subtotal: subtotal,
       advanceAmount: formData.advanceAmount || 0,
       remainingAmount,
       vatAmount,
@@ -219,58 +252,58 @@ export default function EditBookingPage() {
       vatAmount,
       remainingAmount,
     }));
-  }, [formData.items, formData.advanceAmount, formData.vatPercentage, formData.paymentHistory]);
+  }, [formData.items, formData.extraCharges, formData.advanceAmount, formData.vatPercentage, formData.paymentHistory]);
 
- const fetchBookingData = async () => {
-  try {
-    setLoading(true);
-    const response = await fetch(`/api/bookings/${bookingId}`);
-    if (!response.ok) {
-      throw new Error("Failed to fetch booking");
-    }
-    const data = await response.json();
-    if (data.success) {
-      const booking = data.booking;
-      
-      // Format dates for input fields
-      const shiftingDate = booking.shiftingDate 
-        ? new Date(booking.shiftingDate).toISOString().split('T')[0]
-        : "";
-      
-      setFormData({
-        client: booking.client?._id || booking.client || "",
-        clientName: booking.clientName || "",
-        clientPhone: booking.clientPhone || "",
-        clientEmail: booking.clientEmail || "",
-        // Fix: Set quote to null if empty string, otherwise keep the ID
-        quote: booking.quote?._id || booking.quote || null,
-        shiftingDate: shiftingDate,
-        shiftingTime: booking.shiftingTime || "",
-        pickupAddress: booking.pickupAddress || "",
-        deliveryAddress: booking.deliveryAddress || "",
-        items: booking.items || [],
-        totalAmount: booking.totalAmount || 0,
-        advanceAmount: booking.advanceAmount || 0,
-        remainingAmount: booking.remainingAmount || 0,
-        vatPercentage: booking.vatPercentage || 15,
-        vatAmount: booking.vatAmount || 0,
-        payments: booking.payments || [],
-        paymentHistory: booking.paymentHistory || [],
-        assignedStaff: booking.assignedStaff || [],
-        notes: booking.notes || "",
-        specialInstructions: booking.specialInstructions || "",
-        status: booking.status || "pending",
-      });
+  const fetchBookingData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/bookings/${bookingId}`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch booking");
+      }
+      const data = await response.json();
+      if (data.success) {
+        const booking = data.booking;
+        
+        // Format dates for input fields
+        const shiftingDate = booking.shiftingDate 
+          ? new Date(booking.shiftingDate).toISOString().split('T')[0]
+          : "";
+        
+        setFormData({
+          client: booking.client?._id || booking.client || "",
+          clientName: booking.clientName || "",
+          clientPhone: booking.clientPhone || "",
+          clientEmail: booking.clientEmail || "",
+          quote: booking.quote?._id || booking.quote || null,
+          shiftingDate: shiftingDate,
+          shiftingTime: booking.shiftingTime || "",
+          pickupAddress: booking.pickupAddress || "",
+          deliveryAddress: booking.deliveryAddress || "",
+          items: booking.items || [],
+          extraCharges: booking.extraCharges || [], // Load extra charges
+          totalAmount: booking.totalAmount || 0,
+          advanceAmount: booking.advanceAmount || 0,
+          remainingAmount: booking.remainingAmount || 0,
+          vatPercentage: booking.vatPercentage || 15,
+          vatAmount: booking.vatAmount || 0,
+          payments: booking.payments || [],
+          paymentHistory: booking.paymentHistory || [],
+          assignedStaff: booking.assignedStaff || [],
+          notes: booking.notes || "",
+          specialInstructions: booking.specialInstructions || "",
+          status: booking.status || "pending",
+        });
 
-      setSearchClient(booking.clientName || "");
+        setSearchClient(booking.clientName || "");
+      }
+    } catch (error) {
+      console.error("Error fetching booking:", error);
+      setError(error.message);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error fetching booking:", error);
-    setError(error.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const fetchClients = async () => {
     try {
@@ -362,31 +395,89 @@ export default function EditBookingPage() {
     setShowItemDropdown(false);
   };
 
-const handleUpdateItem = (index, field, value) => {
-  // Prevent updating unitPrice
-  if (field === "unitPrice") {
-    return; // Do nothing if trying to update unit price
-  }
-  
-  const updatedItems = [...formData.items];
-  updatedItems[index][field] = value;
+  const handleUpdateItem = (index, field, value) => {
+    if (field === "unitPrice") {
+      return;
+    }
+    
+    const updatedItems = [...formData.items];
+    updatedItems[index][field] = value;
 
-  if (field === "quantity") {
-    updatedItems[index].totalPrice = 
-      updatedItems[index].quantity * updatedItems[index].unitPrice;
-  }
+    if (field === "quantity") {
+      updatedItems[index].totalPrice = 
+        updatedItems[index].quantity * updatedItems[index].unitPrice;
+    }
 
-  setFormData({
-    ...formData,
-    items: updatedItems,
-  });
-};
+    setFormData({
+      ...formData,
+      items: updatedItems,
+    });
+  };
+
   const handleRemoveItem = (index) => {
     if (window.confirm("Remove this item from booking?")) {
       const updatedItems = formData.items.filter((_, i) => i !== index);
       setFormData({
         ...formData,
         items: updatedItems,
+      });
+    }
+  };
+
+  // Extra Charges Handlers
+  const handleAddExtraCharge = () => {
+    if (!newExtraCharge.description || !newExtraCharge.amount) {
+      alert('Please enter both description and amount');
+      return;
+    }
+
+    const amount = parseInt(newExtraCharge.amount);
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid amount (whole numbers only)');
+      return;
+    }
+
+    const updatedExtraCharges = [
+      ...(formData.extraCharges || []),
+      {
+        description: newExtraCharge.description,
+        amount: amount,
+        type: newExtraCharge.type,
+        notes: newExtraCharge.notes || '',
+        date: new Date(),
+      },
+    ];
+
+    setFormData({
+      ...formData,
+      extraCharges: updatedExtraCharges,
+    });
+
+    setNewExtraCharge({
+      description: '',
+      amount: '',
+      type: 'other',
+      notes: '',
+    });
+    setShowExtraChargeForm(false);
+  };
+
+  const handleRemoveExtraCharge = (index) => {
+    if (window.confirm('Remove this extra charge?')) {
+      const updatedExtraCharges = [...(formData.extraCharges || [])];
+      updatedExtraCharges.splice(index, 1);
+      setFormData({
+        ...formData,
+        extraCharges: updatedExtraCharges,
+      });
+    }
+  };
+
+  const handleRemoveAllExtraCharges = () => {
+    if (window.confirm('Remove all extra charges?')) {
+      setFormData({
+        ...formData,
+        extraCharges: [],
       });
     }
   };
@@ -427,46 +518,44 @@ const handleUpdateItem = (index, field, value) => {
     return true;
   };
 
- const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateForm()) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
-  setSaving(true);
-  try {
-    // Create a copy of formData
-    const submitData = {
-      ...formData,
-      shiftingDate: new Date(formData.shiftingDate).toISOString(),
-      advanceAmount: Math.floor(parseFloat(formData.advanceAmount) || 0),
-      vatPercentage: parseFloat(formData.vatPercentage) || 15,
-    };
-    
-    // Remove quote if it's empty string or null
-    if (!submitData.quote) {
-      delete submitData.quote;
+    setSaving(true);
+    try {
+      const submitData = {
+        ...formData,
+        shiftingDate: new Date(formData.shiftingDate).toISOString(),
+        advanceAmount: Math.floor(parseFloat(formData.advanceAmount) || 0),
+        vatPercentage: parseFloat(formData.vatPercentage) || 15,
+      };
+      
+      if (!submitData.quote) {
+        delete submitData.quote;
+      }
+
+      const response = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submitData),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update booking");
+      }
+
+      alert("Booking updated successfully!");
+      router.push("/admin/bookings");
+    } catch (error) {
+      console.error("Error:", error);
+      alert(`Error: ${error.message}`);
+    } finally {
+      setSaving(false);
     }
-
-    const response = await fetch(`/api/bookings/${bookingId}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(submitData),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to update booking");
-    }
-
-    alert("Booking updated successfully!");
-    router.push("/admin/bookings");
-  } catch (error) {
-    console.error("Error:", error);
-    alert(`Error: ${error.message}`);
-  } finally {
-    setSaving(false);
-  }
-};
+  };
 
   const handleDeletePayment = async (paymentIndex) => {
     if (!window.confirm("Are you sure you want to delete this payment record?")) {
@@ -512,6 +601,19 @@ const handleUpdateItem = (index, field, value) => {
     } catch {
       return "Invalid date";
     }
+  };
+
+  // Helper function for charge type colors
+  const getChargeTypeColor = (type) => {
+    const colors = {
+      parking: 'bg-blue-100 text-blue-800',
+      waiting: 'bg-yellow-100 text-yellow-800',
+      fuel: 'bg-orange-100 text-orange-800',
+      toll: 'bg-purple-100 text-purple-800',
+      stairs: 'bg-indigo-100 text-indigo-800',
+      other: 'bg-gray-100 text-gray-800',
+    };
+    return colors[type] || colors.other;
   };
 
   if (loading) {
@@ -816,137 +918,389 @@ const handleUpdateItem = (index, field, value) => {
         </div>
 
         {/* Items Section */}
-      {/* Items Section */}
-<div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-  <button
-    type="button"
-    onClick={() => toggleSection("items")}
-    className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition"
-  >
-    <div className="flex items-center gap-3">
-      <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
-        <FiPackage className="text-orange-600" />
-      </div>
-      <div className="text-left">
-        <h2 className="text-lg font-semibold text-gray-900">Items</h2>
-        <p className="text-sm text-gray-500">
-          {formData.items.length} item{formData.items.length !== 1 ? 's' : ''}
-        </p>
-      </div>
-    </div>
-    {expandedSections.items ? <FiChevronUp /> : <FiChevronDown />}
-  </button>
-
-  {expandedSections.items && (
-    <div className="px-6 pb-6 space-y-4">
-      <div ref={itemRef} className="relative">
-        <div className="relative">
-          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search items to add..."
-            value={searchItem}
-            onChange={(e) => {
-              setSearchItem(e.target.value);
-              setShowItemDropdown(true);
-            }}
-            onFocus={() => setShowItemDropdown(true)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-          />
-        </div>
-
-        {showItemDropdown && filteredItems.length > 0 && (
-          <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-            {filteredItems.map((item) => (
-              <button
-                key={item._id}
-                type="button"
-                onClick={() => handleAddItem(item)}
-                className="w-full text-left px-4 py-2 hover:bg-orange-50 border-b border-gray-100 last:border-b-0"
-              >
-                <div className="font-medium text-gray-900">{item.name}</div>
-                <div className="text-sm text-gray-500">
-                  {formatCurrency(item.basePrice)} • {item.unit}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {formData.items.length === 0 ? (
-        <div className="text-center py-8 bg-gray-50 rounded-lg">
-          <FiPackage className="mx-auto text-gray-400 text-3xl mb-2" />
-          <p className="text-gray-500">No items added</p>
-          <p className="text-sm text-gray-400 mt-1">Search and add items above</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {formData.items.map((item, index) => (
-            <div key={index} className="border rounded-lg p-4 hover:border-orange-300 transition">
-              <div className="flex justify-between items-start mb-3">
-                <h4 className="font-medium text-gray-900">{item.name}</h4>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveItem(index)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <FiTrash2 size={16} />
-                </button>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => toggleSection("items")}
+            className="w-full p-6 flex items-center justify-between hover:bg-gray-50 transition"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                <FiPackage className="text-orange-600" />
               </div>
-
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Quantity
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) => handleUpdateItem(
-                      index,
-                      "quantity",
-                      parseInt(e.target.value) || 1
-                    )}
-                    className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Unit Price
-                  </label>
-                  {/* Unit Price - Read Only */}
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={item.unitPrice}
-                      readOnly
-                      disabled
-                      className="w-full px-2 py-1.5 text-sm bg-gray-100 border border-gray-300 rounded-md text-gray-700 cursor-not-allowed"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                      {/* <span className="text-xs text-gray-500">(fixed)</span> */}
-                    </div>
-                  </div>
-                  {/* <p className="text-xs text-gray-500 mt-1">Price is fixed</p> */}
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Total
-                  </label>
-                  <div className="px-2 py-1.5 bg-gray-50 rounded-md text-sm font-semibold">
-                    {formatCurrency(item.quantity * item.unitPrice)}
-                  </div>
-                </div>
+              <div className="text-left">
+                <h2 className="text-lg font-semibold text-gray-900">Items</h2>
+                <p className="text-sm text-gray-500">
+                  {formData.items.length} item{formData.items.length !== 1 ? 's' : ''}
+                </p>
               </div>
             </div>
-          ))}
+            {expandedSections.items ? <FiChevronUp /> : <FiChevronDown />}
+          </button>
+
+          {expandedSections.items && (
+            <div className="px-6 pb-6 space-y-4">
+              <div ref={itemRef} className="relative">
+                <div className="relative">
+                  <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search items to add..."
+                    value={searchItem}
+                    onChange={(e) => {
+                      setSearchItem(e.target.value);
+                      setShowItemDropdown(true);
+                    }}
+                    onFocus={() => setShowItemDropdown(true)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                  />
+                </div>
+
+                {showItemDropdown && filteredItems.length > 0 && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {filteredItems.map((item) => (
+                      <button
+                        key={item._id}
+                        type="button"
+                        onClick={() => handleAddItem(item)}
+                        className="w-full text-left px-4 py-2 hover:bg-orange-50 border-b border-gray-100 last:border-b-0"
+                      >
+                        <div className="font-medium text-gray-900">{item.name}</div>
+                        <div className="text-sm text-gray-500">
+                          {formatCurrency(item.basePrice)} • {item.unit}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {formData.items.length === 0 ? (
+                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                  <FiPackage className="mx-auto text-gray-400 text-3xl mb-2" />
+                  <p className="text-gray-500">No items added</p>
+                  <p className="text-sm text-gray-400 mt-1">Search and add items above</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {formData.items.map((item, index) => (
+                    <div key={index} className="border rounded-lg p-4 hover:border-orange-300 transition">
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="font-medium text-gray-900">{item.name}</h4>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(index)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <FiTrash2 size={16} />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Quantity
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateItem(
+                              index,
+                              "quantity",
+                              parseInt(e.target.value) || 1
+                            )}
+                            className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Unit Price
+                          </label>
+                          <div className="relative">
+                            <input
+                              type="number"
+                              value={item.unitPrice}
+                              readOnly
+                              disabled
+                              className="w-full px-2 py-1.5 text-sm bg-gray-100 border border-gray-300 rounded-md text-gray-700 cursor-not-allowed"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Total
+                          </label>
+                          <div className="px-2 py-1.5 bg-gray-50 rounded-md text-sm font-semibold">
+                            {formatCurrency(item.quantity * item.unitPrice)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  )}
-</div>
+
+        {/* Extra Charges Section */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="p-6 border-b flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                <FiDollarSign className="text-red-600" />
+              </div>
+              <div className="text-left">
+                <h2 className="text-lg font-semibold text-gray-900">Extra Charges</h2>
+                <p className="text-sm text-gray-500">
+                  Additional fees (parking, waiting, fuel, toll, stairs, etc.)
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {formData.extraCharges && formData.extraCharges.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleRemoveAllExtraCharges}
+                  className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
+                  title="Remove all charges"
+                >
+                  <FiTrash2 size={18} />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => toggleSection("extraCharges")}
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                {expandedSections.extraCharges ? <FiChevronUp size={20} /> : <FiChevronDown size={20} />}
+              </button>
+            </div>
+          </div>
+
+          {expandedSections.extraCharges && (
+            <div className="p-6 space-y-4">
+              {formData.extraCharges && formData.extraCharges.length > 0 && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      <FiDollarSign className="text-red-600" />
+                      <span className="font-medium text-gray-700">Total Extra Charges:</span>
+                    </div>
+                    <span className="text-xl font-bold text-red-600">
+                      {formatCurrency(calculations.extraChargesTotal)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {!showExtraChargeForm ? (
+                <button
+                  type="button"
+                  onClick={() => setShowExtraChargeForm(true)}
+                  className="w-full py-3 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-red-300 hover:text-red-600 hover:bg-red-50 transition flex items-center justify-center gap-2"
+                >
+                  <FiPlus size={18} />
+                  Add Extra Charge
+                </button>
+              ) : (
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 space-y-3">
+                  <h3 className="font-medium text-gray-700 flex items-center gap-2">
+                    <FiDollarSign className="text-red-600" />
+                    Add New Extra Charge
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Description *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g., Parking fee, Waiting time, Fuel surcharge, etc."
+                        value={newExtraCharge.description}
+                        onChange={(e) => setNewExtraCharge({
+                          ...newExtraCharge,
+                          description: e.target.value
+                        })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Amount ($) *
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
+                          $
+                        </span>
+                        <input
+                          type="number"
+                          min="1"
+                          step="1"
+                          placeholder="Amount"
+                          value={newExtraCharge.amount}
+                          onChange={(e) => setNewExtraCharge({
+                            ...newExtraCharge,
+                            amount: e.target.value
+                          })}
+                          onKeyDown={(e) => {
+                            if (e.key === '.' || e.key === ',') {
+                              e.preventDefault();
+                            }
+                          }}
+                          className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Charge Type
+                      </label>
+                      <select
+                        value={newExtraCharge.type}
+                        onChange={(e) => setNewExtraCharge({
+                          ...newExtraCharge,
+                          type: e.target.value
+                        })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                      >
+                        <option value="parking">Parking Fee</option>
+                        <option value="waiting">Waiting Time</option>
+                        <option value="fuel">Fuel Surcharge</option>
+                        <option value="toll">Toll</option>
+                        <option value="stairs">Stairs Charge</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">
+                        Notes (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="Additional details about this charge..."
+                        value={newExtraCharge.notes}
+                        onChange={(e) => setNewExtraCharge({
+                          ...newExtraCharge,
+                          notes: e.target.value
+                        })}
+                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={handleAddExtraCharge}
+                      className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 transition flex items-center gap-2"
+                    >
+                      <FiPlus size={14} />
+                      Add Charge
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowExtraChargeForm(false);
+                        setNewExtraCharge({
+                          description: '',
+                          amount: '',
+                          type: 'other',
+                          notes: '',
+                        });
+                      }}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {formData.extraCharges && formData.extraCharges.length > 0 && (
+                <div className="space-y-4 mt-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-sm font-medium text-gray-700">Added Extra Charges</h3>
+                    <span className="text-xs bg-gray-100 px-2 py-1 rounded-full text-gray-600">
+                      {formData.extraCharges.length} {formData.extraCharges.length === 1 ? 'charge' : 'charges'}
+                    </span>
+                  </div>
+                  
+                  <div className="overflow-x-auto -mx-6 px-6">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Notes</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                          <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {formData.extraCharges.map((charge, index) => (
+                          <tr key={index} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getChargeTypeColor(charge.type)}`}>
+                                {charge.type.charAt(0).toUpperCase() + charge.type.slice(1)}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{charge.description}</p>
+                                {charge.notes && (
+                                  <p className="text-xs text-gray-500 mt-1 md:hidden">{charge.notes}</p>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 hidden md:table-cell">
+                              <p className="text-sm text-gray-500">{charge.notes || '-'}</p>
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <p className="text-sm font-bold text-red-600">{formatCurrency(charge.amount)}</p>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveExtraCharge(index)}
+                                className="inline-flex items-center p-1.5 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Remove charge"
+                              >
+                                <FiTrash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="flex justify-between items-center pt-4 mt-4 border-t-2 border-gray-200 bg-gray-50 p-4 rounded-lg">
+                    <span className="text-base font-semibold text-gray-900">
+                      Total Extra Charges:
+                    </span>
+                    <span className="text-2xl font-bold text-red-600">
+                      {formatCurrency(calculations.extraChargesTotal)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {(!formData.extraCharges || formData.extraCharges.length === 0) && (
+                <div className="text-center py-8 bg-gray-50 rounded-lg">
+                  <FiDollarSign className="mx-auto text-gray-400 text-3xl mb-2" />
+                  <p className="text-gray-500">No extra charges added</p>
+                  <p className="text-sm text-gray-400 mt-1">Click the button above to add charges</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* VAT Settings */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -1026,6 +1380,60 @@ const handleUpdateItem = (index, field, value) => {
 
           {expandedSections.payment && (
             <div className="px-6 pb-6">
+              {/* Detailed Breakdown */}
+              <div className="mb-6 bg-gray-50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Items Total:</span>
+                  <span className="font-medium">{formatCurrency(calculations.itemsTotal || 0)}</span>
+                </div>
+                
+                {calculations.extraChargesTotal > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Extra Charges:</span>
+                    <span className="font-medium text-red-600">
+                      +{formatCurrency(calculations.extraChargesTotal)}
+                    </span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
+                  <span className="text-gray-600 font-medium">Subtotal:</span>
+                  <span className="font-bold">
+                    {formatCurrency(calculations.subtotal || 0)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">VAT ({formData.vatPercentage}%):</span>
+                  <span className="font-medium text-blue-600">
+                    +{formatCurrency(calculations.vatAmount || 0)}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between font-bold pt-2 border-t-2 border-gray-300">
+                  <span className="text-gray-900">Grand Total:</span>
+                  <span className="text-xl text-blue-700">
+                    {formatCurrency(calculations.grandTotal || 0)}
+                  </span>
+                </div>
+
+                {formData.advanceAmount > 0 && (
+                  <div className="flex justify-between text-sm pt-2 mt-2 border-t border-gray-200">
+                    <span className="text-gray-600">Advance Paid:</span>
+                    <span className="font-medium text-green-600">
+                      -{formatCurrency(formData.advanceAmount)}
+                    </span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between font-bold pt-2 border-t border-gray-200">
+                  <span className="text-gray-900">Remaining Balance:</span>
+                  <span className="text-lg text-orange-600">
+                    {formatCurrency(calculations.remainingAmount || 0)}
+                  </span>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

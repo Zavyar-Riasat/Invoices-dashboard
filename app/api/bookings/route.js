@@ -93,11 +93,20 @@ export async function POST(request) {
       );
     }
 
-    // Calculate totals
-    const subtotal = body.items.reduce(
+    // Calculate items total
+    const itemsTotal = body.items.reduce(
       (sum, item) => sum + (item.quantity * item.unitPrice),
       0
     );
+
+    // Calculate extra charges total
+    const extraChargesTotal = (body.extraCharges || []).reduce(
+      (sum, charge) => sum + (charge.amount || 0),
+      0
+    );
+
+    // Calculate subtotal (items + extra charges)
+    const subtotal = itemsTotal + extraChargesTotal;
 
     // Calculate VAT
     const vatPercentage = parseFloat(body.vatPercentage) || 15;
@@ -168,14 +177,16 @@ export async function POST(request) {
         unitPrice: item.unitPrice,
         totalPrice: item.quantity * item.unitPrice,
       })),
+      // Add extra charges
+      extraCharges: body.extraCharges || [],
       subtotal,
       vatPercentage,
       vatAmount,
       totalAmount,
       advanceAmount,
       remainingAmount,
-      paymentHistory, // Add payment history with mapped method
-      payments, // Add payments array
+      paymentHistory,
+      payments,
       assignedStaff: body.assignedStaff || [],
       notes: body.notes || '',
       specialInstructions: body.specialInstructions || '',

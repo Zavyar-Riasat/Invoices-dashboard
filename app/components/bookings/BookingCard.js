@@ -61,8 +61,9 @@ const BookingCard = ({
     format(new Date(), "yyyy-MM-dd"),
   );
   const [processingPayment, setProcessingPayment] = useState(false);
-  // Add this near the top of the component, after the props
+  
   console.log("BookingCard rendered with booking ID:", booking?._id);
+  
   // Validate booking data
   if (!booking || !booking._id) {
     return (
@@ -154,9 +155,23 @@ const BookingCard = ({
 
   const statusConfig = getStatusConfig(booking.status);
 
+  // Calculate items total
+  const itemsTotal = booking.items?.reduce(
+    (sum, item) => sum + (item.totalPrice || 0),
+    0
+  ) || 0;
+
+  // Calculate extra charges total
+  const extraChargesTotal = booking.extraCharges?.reduce(
+    (sum, charge) => sum + (charge.amount || 0),
+    0
+  ) || 0;
+
+  // Calculate subtotal (items + extra charges)
+  const subtotal = itemsTotal + extraChargesTotal;
+
   // Calculate grand total (subtotal + vat)
-  const grandTotal =
-    (booking.subtotal || booking.totalAmount || 0) + (booking.vatAmount || 0);
+  const grandTotal = subtotal + (booking.vatAmount || 0);
 
   // Calculate total paid so far from payment history
   const totalPaid = booking.paymentHistory
@@ -168,10 +183,22 @@ const BookingCard = ({
 
   // Calculate remaining balance
   const roundToTwo = (num) => Math.round(num * 100) / 100;
-
   const remainingBalance = roundToTwo(
     Math.max(0, roundToTwo(grandTotal) - roundToTwo(totalPaid)),
   );
+
+  // Get type badge color for extra charges
+  const getChargeTypeColor = (type) => {
+    const colors = {
+      parking: 'bg-blue-100 text-blue-800',
+      waiting: 'bg-yellow-100 text-yellow-800',
+      fuel: 'bg-orange-100 text-orange-800',
+      toll: 'bg-purple-100 text-purple-800',
+      stairs: 'bg-indigo-100 text-indigo-800',
+      other: 'bg-gray-100 text-gray-800',
+    };
+    return colors[type] || colors.other;
+  };
 
   const handleUpdateStatus = async (newStatus) => {
     if (
@@ -304,7 +331,6 @@ const BookingCard = ({
   };
 
   const handleRecordPayment = async () => {
-    // 1. Initial Validation
     const amount = parseFloat(paymentAmount);
 
     if (!paymentAmount || isNaN(amount) || amount <= 0) {
@@ -322,7 +348,6 @@ const BookingCard = ({
     setProcessingPayment(true);
 
     try {
-      // 2. API Call
       const response = await fetch(`/api/bookings/${booking._id}/payments`, {
         method: "POST",
         headers: {
@@ -344,17 +369,14 @@ const BookingCard = ({
         );
       }
 
-      // 3. Success Actions
       alert("Payment recorded successfully!");
 
-      // Reset Modal Fields
       setPaymentAmount("");
       setPaymentNotes("");
       setPaymentDate(format(new Date(), "yyyy-MM-dd"));
       setPaymentMethod("cash");
       setShowPaymentModal(false);
 
-      // 4. Refresh the data
       if (typeof onRefresh === "function") {
         onRefresh();
       }
@@ -440,6 +462,16 @@ const BookingCard = ({
                 </p>
               </div>
             </div>
+
+            {/* Extra Charges Badge - Show if there are extra charges */}
+            {booking.extraCharges && booking.extraCharges.length > 0 && (
+              <div className="mb-3 flex items-center gap-1 text-xs">
+                <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full flex items-center gap-1">
+                  <FiDollarSign size={12} />
+                  Extra Charges: {formatCurrency(extraChargesTotal)}
+                </span>
+              </div>
+            )}
 
             {/* Expand Button */}
             <button
@@ -557,7 +589,7 @@ const BookingCard = ({
                           Shifting Date
                         </p>
                         <p className="text-xs text-gray-600">
-                          {booking.shiftingDate || "Not specified"}
+                          {formatDate(booking.shiftingDate)}
                         </p>
                       </div>
                     </div>
@@ -595,6 +627,48 @@ const BookingCard = ({
                 </div>
               )}
 
+              {/* Extra Charges Section */}
+              {booking.extraCharges && booking.extraCharges.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
+                    <FiDollarSign className="text-red-500" />
+                    EXTRA CHARGES
+                  </h4>
+                  <div className="space-y-2 max-h-32 overflow-y-auto">
+                    {booking.extraCharges.map((charge, index) => (
+                      <div
+                        key={index}
+                        className="flex justify-between items-start py-2 border-b border-gray-100 last:border-0"
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={`text-xs px-2 py-0.5 rounded-full ${getChargeTypeColor(charge.type)}`}>
+                              {charge.type.charAt(0).toUpperCase() + charge.type.slice(1)}
+                            </span>
+                            <span className="text-sm font-medium text-gray-900">
+                              {charge.description}
+                            </span>
+                          </div>
+                          {charge.notes && (
+                            <p className="text-xs text-gray-500 mt-1">{charge.notes}</p>
+                          )}
+                        </div>
+                        <span className="text-sm font-bold text-red-600 ml-2">
+                          {formatCurrency(charge.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Extra Charges Total */}
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-200">
+                    <span className="text-xs font-medium text-gray-700">Total Extra Charges:</span>
+                    <span className="text-sm font-bold text-red-600">
+                      {formatCurrency(extraChargesTotal)}
+                    </span>
+                  </div>
+                </div>
+              )}
+
               {/* Payment Summary */}
               <div className="bg-gray-50 p-3 rounded-lg">
                 <h4 className="text-xs font-medium text-gray-500 mb-2">
@@ -602,13 +676,29 @@ const BookingCard = ({
                 </h4>
                 <div className="space-y-1.5">
                   <div className="flex justify-between">
-                    <span className="text-xs text-gray-600">Subtotal:</span>
+                    <span className="text-xs text-gray-600">Items Total:</span>
                     <span className="text-xs font-medium">
-                      {formatCurrency(
-                        booking.subtotal || booking.totalAmount || 0,
-                      )}
+                      {formatCurrency(itemsTotal)}
                     </span>
                   </div>
+                  
+                  {/* Extra Charges in Summary */}
+                  {extraChargesTotal > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-xs text-gray-600">Extra Charges:</span>
+                      <span className="text-xs font-medium text-red-600">
+                        +{formatCurrency(extraChargesTotal)}
+                      </span>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between pt-1 border-t border-gray-200">
+                    <span className="text-xs text-gray-600">Subtotal:</span>
+                    <span className="text-xs font-medium">
+                      {formatCurrency(subtotal)}
+                    </span>
+                  </div>
+                  
                   {(booking.vatAmount ?? 0) !== 0 && (
                     <div className="flex justify-between">
                       <span className="text-xs text-gray-600">
@@ -619,6 +709,7 @@ const BookingCard = ({
                       </span>
                     </div>
                   )}
+                  
                   <div className="flex justify-between pt-1.5 border-t border-gray-200">
                     <span className="text-sm font-bold text-gray-900">
                       Grand Total:
@@ -627,12 +718,14 @@ const BookingCard = ({
                       {formatCurrency(grandTotal)}
                     </span>
                   </div>
+                  
                   <div className="flex justify-between mt-2">
                     <span className="text-xs text-gray-600">Total Paid:</span>
                     <span className="text-xs font-medium text-green-600">
                       {formatCurrency(totalPaid)}
                     </span>
                   </div>
+                  
                   <div className="flex justify-between pt-1.5 border-t border-gray-200">
                     <span className="text-sm font-bold text-gray-900">
                       Remaining Balance:
@@ -642,7 +735,7 @@ const BookingCard = ({
                     </span>
                   </div>
 
-                  {/* Payment History with Dates */}
+                  {/* Payment History */}
                   {booking.paymentHistory &&
                     booking.paymentHistory.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-gray-200">
@@ -739,13 +832,15 @@ const BookingCard = ({
         {/* Actions - Always visible */}
         <div className="p-2 -pb-2 border-t border-gray-100 bg-gray-50/50 rounded-b-xl">
           <div className="flex flex-wrap gap-1.5 justify-end">
-            <Link
-              href={`/admin/bookings/edit/${booking._id}`}
-              className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
-              title="Edit Booking"
-            >
-              <FiEdit2 size={16} />
-            </Link>
+            {booking.status !== "completed" && (
+  <Link
+    href={`/admin/bookings/edit/${booking._id}`}
+    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+    title="Edit Booking"
+  >
+    <FiEdit2 size={16} />
+  </Link>
+)}
 
             <div className="p-2 text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition">
               <BookingDownloadButton
@@ -836,7 +931,7 @@ const BookingCard = ({
                 </button>
               )}
 
-              {/* Record Payment Button - Always visible when there's remaining balance */}
+              {/* Record Payment Button */}
               {["confirmed", "in_progress"].includes(booking.status) &&
                 remainingBalance > 0 && (
                   <button
@@ -930,7 +1025,6 @@ const BookingCard = ({
                       const roundedValue =
                         Math.round(parseFloat(value) * 100) / 100;
 
-                      // Check if the value is a valid number and not exceeding remaining balance
                       if (
                         !isNaN(roundedValue) &&
                         roundedValue <= remainingBalance

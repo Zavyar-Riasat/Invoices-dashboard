@@ -67,7 +67,38 @@ const bookingSchema = new mongoose.Schema(
       },
     ],
 
-    // ✅ Subtotal (before VAT)
+    // ✅ Extra Charges
+    extraCharges: [
+      {
+        description: {
+          type: String,
+          required: true,
+        },
+        amount: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        type: {
+          type: String,
+          enum: ['parking', 'waiting', 'fuel', 'toll', 'stairs', 'other'],
+          default: 'other',
+        },
+        date: {
+          type: Date,
+          default: Date.now,
+        },
+        notes: String,
+      },
+    ],
+
+    // ✅ Total Extra Charges (calculated field)
+    totalExtraCharges: {
+      type: Number,
+      default: 0,
+    },
+
+    // ✅ Subtotal (before VAT) - now includes items + extra charges
     subtotal: {
       type: Number,
       required: true,
@@ -195,9 +226,10 @@ const bookingSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// ✅ PRE SAVE HOOK
+// ✅ PRE SAVE HOOK - Updated to include extra charges
 bookingSchema.pre('save', async function (next) {
   try {
+    // 🔢 Generate booking number for new bookings
     if (this.isNew) {
       const year = new Date().getFullYear().toString().slice(-2);
 
@@ -217,25 +249,50 @@ bookingSchema.pre('save', async function (next) {
       this.bookingNumber = `BK-${year}-${nextNumber.toString().padStart(5, '0')}`;
     }
 
-    // ✅ Subtotal, VAT, totalAmount, remainingAmount calculation stays the same
-    if (!this.subtotal || this.subtotal === 0) {
-      this.subtotal = this.items.reduce(
-        (sum, item) => sum + (item.totalPrice || 0),
-        0
-      );
-    }
+    // ✅ Calculate total extra charges
+    this.totalExtraCharges = (this.extraCharges || []).reduce(
+      (sum, charge) => sum + (charge.amount || 0),
+      0
+    );
 
+    // ✅ Calculate items total
+    const itemsTotal = this.items.reduce(
+      (sum, item) => sum + (item.totalPrice || 0),
+      0
+    );
+
+    // ✅ Subtotal = items + extra charges
+    this.subtotal = itemsTotal + this.totalExtraCharges;
+
+    // ✅ Calculate VAT (rounded)
     this.vatAmount = Math.round((this.subtotal * this.vatPercentage) / 100);
+
+    // ✅ Calculate Grand Total
     this.totalAmount = Math.round(this.subtotal + this.vatAmount);
 
-    const totalPaid = this.payments
+    // ✅ Calculate Total Paid from payments array
+    const totalPaid = (this.payments || [])
       .filter((p) => p.status === 'completed')
-      .reduce((sum, payment) => sum + payment.amount, 0);
+      .reduce((sum, payment) => sum + (payment.amount || 0), 0);
 
-    this.remainingAmount = Math.max(0, this.totalAmount - totalPaid);
+    // ✅ Also check paymentHistory for backward compatibility
+    const totalPaidFromHistory = (this.paymentHistory || []).reduce(
+      (sum, p) => sum + (p.amount || 0),
+      0
+    );
+
+    // Use the larger of the two (in case payments are stored in different places)
+    const finalTotalPaid = Math.max(totalPaid, totalPaidFromHistory, this.advanceAmount || 0);
+
+    // ✅ Calculate Remaining
+    this.remainingAmount = Math.max(0, this.totalAmount - finalTotalPaid);
+
+    // ✅ Update advanceAmount to match total paid (for consistency)
+    this.advanceAmount = finalTotalPaid;
 
     next();
   } catch (error) {
+    console.error('Error in booking pre-save hook:', error);
     next(error);
   }
 });

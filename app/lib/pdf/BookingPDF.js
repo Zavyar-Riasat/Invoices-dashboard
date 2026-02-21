@@ -53,6 +53,14 @@ const styles = StyleSheet.create({
   cellRate: { width: '15%', textAlign: 'right' },
   cellTotal: { width: '15%', textAlign: 'right' },
 
+  // Extra Charges Section
+  extraChargesContainer: { marginTop: 10 },
+  extraChargesHeader: { flexDirection: 'row', backgroundColor: '#DC2626', color: '#FFFFFF', padding: 6, borderRadius: 2, fontWeight: 'bold' },
+  extraChargesRow: { flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#F3F4F6', padding: 6, alignItems: 'center' },
+  extraChargesCellDesc: { width: '60%' },
+  extraChargesCellType: { width: '20%', textAlign: 'center' },
+  extraChargesCellAmount: { width: '20%', textAlign: 'right' },
+
   // Financial Section
   financialContainer: { flexDirection: 'row', justifyContent: 'flex-end', marginTop: 20 },
   summaryBox: { width: '200pt' },
@@ -78,9 +86,17 @@ export const MyBookingDocument = ({ booking, companyInfo }) => {
   const formatDate = (date) => date ? new Date(date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'TBD';
   const formatDateTime = (date) => date ? new Date(date).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'TBD';
 
-  const subtotal = booking.subtotal || 0;
+  // Calculate items total
+  const itemsTotal = (booking.items || []).reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+  
+  // Calculate extra charges total
+  const extraChargesTotal = (booking.extraCharges || []).reduce((sum, charge) => sum + (charge.amount || 0), 0);
+  
+  // Calculate subtotal (items + extra charges)
+  const subtotal = itemsTotal + extraChargesTotal;
+  
   const vat = booking.vatAmount || 0;
-  const grandTotal = (booking.totalAmount || (subtotal + vat));
+  const grandTotal = subtotal + vat;
   const totalPaid = (booking.paymentHistory || []).reduce((sum, p) => sum + (p.amount || 0), 0);
   const remainingBalance = Math.max(0, grandTotal - totalPaid);
 
@@ -156,17 +172,56 @@ export const MyBookingDocument = ({ booking, companyInfo }) => {
           ))}
         </View>
 
+        {/* Extra Charges Table */}
+        {booking.extraCharges && booking.extraCharges.length > 0 && (
+          <View style={styles.extraChargesContainer}>
+            <View style={styles.extraChargesHeader}>
+              <Text style={styles.extraChargesCellDesc}>Extra Charge Description</Text>
+              <Text style={styles.extraChargesCellType}>Type</Text>
+              <Text style={styles.extraChargesCellAmount}>Amount</Text>
+            </View>
+            {(booking.extraCharges || []).map((charge, i) => (
+              <View key={i} style={[styles.extraChargesRow, i % 2 === 1 ? styles.zebraRow : {}]}>
+                <Text style={styles.extraChargesCellDesc}>{charge.description}</Text>
+                <Text style={styles.extraChargesCellType}>{(charge.type || 'other').charAt(0).toUpperCase() + (charge.type || 'other').slice(1)}</Text>
+                <Text style={styles.extraChargesCellAmount}>£{(charge.amount || 0).toFixed(2)}</Text>
+              </View>
+            ))}
+            {/* Extra Charges Total */}
+            <View style={[styles.extraChargesRow, { backgroundColor: '#FEE2E2', borderTopWidth: 1, borderTopColor: '#DC2626' }]}>
+              <Text style={[styles.extraChargesCellDesc, { fontWeight: 'bold' }]}>Total Extra Charges</Text>
+              <Text style={styles.extraChargesCellType}></Text>
+              <Text style={[styles.extraChargesCellAmount, { fontWeight: 'bold', color: '#DC2626' }]}>£{extraChargesTotal.toFixed(2)}</Text>
+            </View>
+          </View>
+        )}
+
         {/* Financial Summary */}
         <View style={styles.financialContainer}>
           <View style={styles.summaryBox}>
             <View style={styles.summaryRow}>
+              <Text style={{ color: '#6B7280' }}>Items Subtotal</Text>
+              <Text>£{(itemsTotal).toFixed(2)}</Text>
+            </View>
+            
+            {/* Extra Charges Line in Summary */}
+            {extraChargesTotal > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={{ color: '#6B7280' }}>Extra Charges</Text>
+                <Text style={{ color: '#DC2626' }}>+£{extraChargesTotal.toFixed(2)}</Text>
+              </View>
+            )}
+            
+            <View style={styles.summaryRow}>
               <Text style={{ color: '#6B7280' }}>Net Subtotal</Text>
               <Text>£{(subtotal).toFixed(2)}</Text>
             </View>
+            
             <View style={styles.summaryRow}>
               <Text style={{ color: '#6B7280' }}>VAT ({booking.vatPercentage || 0}%)</Text>
               <Text>£{(vat).toFixed(2)}</Text>
             </View>
+            
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>TOTAL AMOUNT</Text>
               <Text style={styles.totalValue}>£{(grandTotal).toFixed(2)}</Text>
