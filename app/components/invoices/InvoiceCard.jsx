@@ -325,9 +325,46 @@ const InvoiceCard = ({ invoice, onRefresh, onDelete, isExpanded, onToggleExpand 
               </span>
             </div>
           )}
+          {/* Action Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSendEmail}
+                  disabled={sending || invoice.emailSent}
+                  className="flex-1 px-3 py-2 cursor-pointer bg-blue-50 text-blue-600 text-xs font-medium rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-1 disabled:opacity-50"
+                >
+                  {sending ? <FiLoader className="animate-spin" size={12} /> : <FiSend size={12} />}
+                  {sending ? "Sending..." : invoice.emailSent ? "Resend" : "Send Email"}
+                </button>
+                <button
+                  onClick={handleDownloadInvoice}
+                  disabled={downloading}
+                  className="flex-1 px-3 py-2 cursor-pointer bg-purple-50 text-purple-600 text-xs font-medium rounded-lg hover:bg-purple-100 transition flex items-center justify-center gap-1 disabled:opacity-50"
+                >
+                  {downloading ? <FiLoader className="animate-spin" size={12} /> : <FiDownload size={12} />}
+                  {downloading ? "Generating..." : "Download PDF"}
+                </button>
+                {/* Signature Button */}
+              {!invoice.deliveryConfirmed && invoice.status !== 'cancelled' && (
+                <button
+                  onClick={() => setShowSignatureModal(true)}
+                  className="p-2 text-white cursor-pointer hover:bg-secondary bg-secondary rounded-lg transition"
+                >
+                   Digital Signature
+                </button>
+              )}
+                <button
+                  onClick={handleDelete}
+                  className="p-2 text-red-600 cursor-pointer hover:bg-red-50 rounded-lg transition"
+                >
+                  <FiTrash2 size={16} />
+                </button>
+                
+              </div>
+
+              
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-4">
             <Link
               href={`/admin/invoices/${invoice._id}`}
               className="flex-1 px-3 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-secondary transition text-center"
@@ -406,41 +443,7 @@ const InvoiceCard = ({ invoice, onRefresh, onDelete, isExpanded, onToggleExpand 
                 </div>
               )}
 
-              {/* Action Buttons */}
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSendEmail}
-                  disabled={sending || invoice.emailSent}
-                  className="flex-1 px-3 py-2 bg-blue-50 text-blue-600 text-xs font-medium rounded-lg hover:bg-blue-100 transition flex items-center justify-center gap-1 disabled:opacity-50"
-                >
-                  {sending ? <FiLoader className="animate-spin" size={12} /> : <FiSend size={12} />}
-                  {sending ? "Sending..." : invoice.emailSent ? "Resend" : "Send Email"}
-                </button>
-                <button
-                  onClick={handleDownloadInvoice}
-                  disabled={downloading}
-                  className="flex-1 px-3 py-2 bg-purple-50 text-purple-600 text-xs font-medium rounded-lg hover:bg-purple-100 transition flex items-center justify-center gap-1 disabled:opacity-50"
-                >
-                  {downloading ? <FiLoader className="animate-spin" size={12} /> : <FiDownload size={12} />}
-                  {downloading ? "Generating..." : "Download PDF"}
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-                >
-                  <FiTrash2 size={16} />
-                </button>
-              </div>
-
-              {/* Signature Button */}
-              {!invoice.deliveryConfirmed && invoice.status !== 'cancelled' && (
-                <button
-                  onClick={() => setShowSignatureModal(true)}
-                  className="w-full mt-2 px-3 py-2 bg-green-600 text-white text-xs font-medium rounded-lg hover:bg-green-700 transition"
-                >
-                  Get Digital Signature
-                </button>
-              )}
+              
             </div>
           )}
         </div>
