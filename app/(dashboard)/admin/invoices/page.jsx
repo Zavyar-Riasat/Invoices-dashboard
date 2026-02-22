@@ -19,6 +19,11 @@ import InvoiceCard from "@/app/components/invoices/InvoiceCard";
 export default function InvoicesPage() {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+    const [expandedInvoiceId, setExpandedInvoiceId] = useState(null);
+    const handleToggleExpand = (id) => {
+    setExpandedInvoiceId((prev) => (prev === id ? null : id));
+  };
+
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -157,7 +162,7 @@ export default function InvoicesPage() {
             <option value="draft">Draft</option>
             <option value="sent">Sent</option>
             <option value="paid">Paid</option>
-            <option value="overdue">Overdue</option>
+            {/* <option value="overdue">Overdue</option> */}
             <option value="cancelled">Cancelled</option>
           </select>
         </div>
@@ -206,12 +211,14 @@ export default function InvoicesPage() {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 items-start">
                 {invoices.map((invoice) => (
                   <InvoiceCard
                     key={invoice._id}
                     invoice={invoice}
                     onRefresh={fetchInvoices}
+                      isExpanded={expandedInvoiceId === invoice._id}
+          onToggleExpand={handleToggleExpand}
                     onDelete={handleDeleteInvoice}
                   />
                 ))}

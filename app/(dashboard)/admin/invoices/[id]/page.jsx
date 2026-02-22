@@ -282,7 +282,7 @@ const handleDownloadInvoice = async () => {
             <button
               onClick={handleSendEmail}
               disabled={sendingEmail}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2 bg-secondary text-white rounded-lg font-medium hover:bg-secondary cursor-pointer  transition flex items-center gap-2 disabled:opacity-50"
             >
               {sendingEmail ? <FiLoader className="animate-spin" /> : <FiMail />}
               {sendingEmail ? "Sending..." : "Send Email"}

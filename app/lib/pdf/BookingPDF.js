@@ -274,8 +274,8 @@ export const BookingDownloadButton = ({ booking, companyInfo }) => {
   return (
     <div onMouseEnter={() => setReady(true)}>
       {!ready ? (
-        <button className="flex items-center gap-2 px-2 py-1 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-blue-700 transition-colors">
-          <FiDownload /> Generate Invoice
+        <button className="flex items-center gap-2 px-2 py-1 text-sm font-semibold text-white bg-primary rounded-lg hover:bg-secondary transition-colors">
+          <FiDownload /> Generating PDF
         </button>
       ) : (
         <PDFDownloadLink

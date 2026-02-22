@@ -392,7 +392,7 @@ const InvoicePDFDocument = ({ invoice, companyInfo }) => {
               
               {invoice?.deliveryConfirmed && (
                 <View style={styles.deliveryBox}>
-                  <Text style={styles.deliveryText}>✓ Delivery Confirmed</Text>
+                  <Text style={styles.deliveryText}>Delivery Confirmed</Text>
                   <Text style={styles.deliveryText}>{formatDate(invoice.deliveryConfirmedAt)}</Text>
                 </View>
               )}
